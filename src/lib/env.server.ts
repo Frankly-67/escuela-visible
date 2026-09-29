@@ -22,6 +22,12 @@ const hederaSchema = z.object({
 
 export type HederaEnv = z.infer<typeof hederaSchema>;
 
+const demoSchema = z.object({
+  DEMO_ACCOUNT_PASSWORD: z
+    .string()
+    .min(12, "DEMO_ACCOUNT_PASSWORD debe tener al menos 12 caracteres"),
+});
+
 // Se validan de forma perezosa para que el build no exija credenciales.
 export function getSupabaseSecretKey(): string {
   return supabaseServerSchema.parse(process.env).SUPABASE_SECRET_KEY;
@@ -29,4 +35,36 @@ export function getSupabaseSecretKey(): string {
 
 export function getHederaEnv(): HederaEnv {
   return hederaSchema.parse(process.env);
+}
+
+/** Solo para scripts DEMO. Nunca se usa en rutas de la app. */
+export function getDemoAccountPassword(): string {
+  return demoSchema.parse(process.env).DEMO_ACCOUNT_PASSWORD;
+}
+
+/**
+ * Valida cada grupo de variables sin exponer valores: devuelve solo
+ * qué variables faltan o tienen formato inválido.
+ */
+export function checkServerEnv() {
+  const groups = {
+    supabase: supabaseServerSchema,
+    hedera: hederaSchema,
+    demo: demoSchema,
+  } as const;
+
+  return Object.fromEntries(
+    Object.entries(groups).map(([name, schema]) => {
+      const result = schema.safeParse(process.env);
+      return [
+        name,
+        result.success
+          ? { ok: true as const, issues: [] }
+          : {
+              ok: false as const,
+              issues: result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`),
+            },
+      ];
+    }),
+  ) as Record<keyof typeof groups, { ok: boolean; issues: string[] }>;
 }
