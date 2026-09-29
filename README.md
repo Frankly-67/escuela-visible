@@ -55,6 +55,7 @@ npm run dev
 | `npm run lint` | ESLint |
 | `npm run typecheck` | Genera tipos de rutas y ejecuta `tsc --noEmit` |
 | `npm run build` | Build de producción |
+| `npm test` | Pruebas unitarias (`node:test` vía `tsx`) |
 | `npm run db:types` | Regenera `src/types/database.ts` desde el proyecto Supabase enlazado |
 | `npm run env:check` | Verifica variables de entorno sin imprimir valores |
 | `npm run script -- scripts/<x>.ts` | Ejecuta un script con `.env.local` y la condición `react-server` |
