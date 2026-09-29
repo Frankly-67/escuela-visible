@@ -13,9 +13,11 @@ export async function GET() {
   }
 
   const supabase = await createClient();
+  // GET (no `head: true`): una petición HEAD no reporta error si la tabla no existe.
   const { count, error } = await supabase
     .from("schools")
-    .select("id", { count: "exact", head: true });
+    .select("id", { count: "exact" })
+    .limit(1);
 
   if (error) {
     return NextResponse.json({ ok: false, supabase: "error", error: error.message }, { status: 503 });
