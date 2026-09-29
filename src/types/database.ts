@@ -429,6 +429,111 @@ export type Database = {
         Returns: Database["public"]["Enums"]["user_role"]
       }
       current_user_school_id: { Args: never; Returns: string }
+      flow_assert_quantity: { Args: { p_quantity: number }; Returns: undefined }
+      flow_confirm_receipt: {
+        Args: {
+          p_actor_id: string
+          p_commitment_id: string
+          p_event_id: string
+          p_payload_canonical: string
+          p_payload_hash: string
+        }
+        Returns: Json
+      }
+      flow_create_commitment: {
+        Args: {
+          p_actor_id: string
+          p_commitment_id: string
+          p_event_id: string
+          p_need_id: string
+          p_note: string
+          p_payload_canonical: string
+          p_payload_hash: string
+          p_quantity: number
+        }
+        Returns: Json
+      }
+      flow_create_need: {
+        Args: {
+          p_actor_id: string
+          p_category: Database["public"]["Enums"]["need_category"]
+          p_description: string
+          p_event_date: string
+          p_event_id: string
+          p_goal_quantity: number
+          p_goal_unit: string
+          p_kind: Database["public"]["Enums"]["need_kind"]
+          p_need_id: string
+          p_payload_canonical: string
+          p_payload_hash: string
+          p_priority: Database["public"]["Enums"]["need_priority"]
+          p_school_id: string
+          p_title: string
+        }
+        Returns: Json
+      }
+      flow_fail: {
+        Args: { p_code: string; p_message: string }
+        Returns: undefined
+      }
+      flow_get_actor: {
+        Args: { p_actor_id: string }
+        Returns: {
+          created_at: string
+          display_name: string
+          id: string
+          org_name: string | null
+          org_type: Database["public"]["Enums"]["org_type"] | null
+          role: Database["public"]["Enums"]["user_role"]
+          school_id: string | null
+          show_publicly: boolean
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      flow_insert_event: {
+        Args: {
+          p_actor_role: Database["public"]["Enums"]["user_role"]
+          p_commitment_id: string
+          p_event_id: string
+          p_event_type: Database["public"]["Enums"]["hedera_event_type"]
+          p_need_id: string
+          p_payload_canonical: string
+          p_payload_hash: string
+          p_school_id: string
+        }
+        Returns: undefined
+      }
+      flow_reject_need: {
+        Args: { p_actor_id: string; p_need_id: string }
+        Returns: Json
+      }
+      flow_report_delivery: {
+        Args: {
+          p_actor_id: string
+          p_commitment_id: string
+          p_delivery_note: string
+          p_event_id: string
+          p_payload_canonical: string
+          p_payload_hash: string
+        }
+        Returns: Json
+      }
+      flow_validate_need: {
+        Args: {
+          p_actor_id: string
+          p_event_id: string
+          p_need_id: string
+          p_payload_canonical: string
+          p_payload_hash: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       commitment_status:
@@ -445,12 +550,11 @@ export type Database = {
       hedera_submission_status: "pending" | "submitted" | "failed"
       need_category:
         | "infraestructura"
-        | "conectividad"
-        | "mobiliario"
         | "materiales"
-        | "agua_saneamiento"
-        | "mantenimiento"
-        | "comunitaria"
+        | "alimentacion"
+        | "conectividad"
+        | "transporte"
+        | "actividad_comunitaria"
       need_kind: "need" | "campaign"
       need_priority: "alta" | "media" | "baja"
       need_status:
@@ -603,12 +707,11 @@ export const Constants = {
       hedera_submission_status: ["pending", "submitted", "failed"],
       need_category: [
         "infraestructura",
-        "conectividad",
-        "mobiliario",
         "materiales",
-        "agua_saneamiento",
-        "mantenimiento",
-        "comunitaria",
+        "alimentacion",
+        "conectividad",
+        "transporte",
+        "actividad_comunitaria",
       ],
       need_kind: ["need", "campaign"],
       need_priority: ["alta", "media", "baja"],
