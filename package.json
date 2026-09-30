@@ -13,7 +13,8 @@
     "env:check": "tsx --conditions=react-server scripts/env-check.ts",
     "test": "tsx --test \"src/**/*.test.ts\"",
     "hedera:check": "tsx --conditions=react-server scripts/hedera-check.ts",
-    "hedera:create-topic": "tsx --conditions=react-server scripts/hedera-create-topic.ts"
+    "hedera:create-topic": "tsx --conditions=react-server scripts/hedera-create-topic.ts",
+    "hedera:verify": "tsx --conditions=react-server scripts/hedera-verify.ts"
   },
   "dependencies": {
     "@hiero-ledger/sdk": "2.89.1",
