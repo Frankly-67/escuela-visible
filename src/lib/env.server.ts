@@ -11,15 +11,21 @@ const supabaseServerSchema = z.object({
   SUPABASE_SECRET_KEY: z.string().min(1, "SUPABASE_SECRET_KEY no está definida"),
 });
 
-const hederaSchema = z.object({
+// Operador (cuenta que paga y firma). No incluye el topic: se usa también
+// antes de que el topic exista (chequeo de credenciales, creación del topic).
+const hederaOperatorSchema = z.object({
   HEDERA_NETWORK: z.enum(["testnet", "mainnet", "previewnet"]).default("testnet"),
   HEDERA_OPERATOR_ID: z.string().regex(/^\d+\.\d+\.\d+$/, "HEDERA_OPERATOR_ID inválido"),
   HEDERA_OPERATOR_KEY: z.string().min(1, "HEDERA_OPERATOR_KEY no está definida"),
   HEDERA_OPERATOR_KEY_TYPE: z.enum(["ecdsa", "ed25519"]).default("ecdsa"),
-  HEDERA_TOPIC_ID: z.string().regex(/^\d+\.\d+\.\d+$/, "HEDERA_TOPIC_ID inválido"),
   HEDERA_MIRROR_NODE_URL: z.url().default("https://testnet.mirrornode.hedera.com"),
 });
 
+const hederaSchema = hederaOperatorSchema.extend({
+  HEDERA_TOPIC_ID: z.string().regex(/^\d+\.\d+\.\d+$/, "HEDERA_TOPIC_ID inválido"),
+});
+
+export type HederaOperatorEnv = z.infer<typeof hederaOperatorSchema>;
 export type HederaEnv = z.infer<typeof hederaSchema>;
 
 const demoSchema = z.object({
@@ -35,6 +41,10 @@ export function getSupabaseSecretKey(): string {
 
 export function getHederaEnv(): HederaEnv {
   return hederaSchema.parse(process.env);
+}
+
+export function getHederaOperatorEnv(): HederaOperatorEnv {
+  return hederaOperatorSchema.parse(process.env);
 }
 
 /** Solo para scripts DEMO. Nunca se usa en rutas de la app. */

@@ -11,7 +11,8 @@
     "db:types": "npx supabase@latest gen types typescript --linked --schema public > src/types/database.ts",
     "script": "tsx --conditions=react-server",
     "env:check": "tsx --conditions=react-server scripts/env-check.ts",
-    "test": "tsx --test \"src/**/*.test.ts\""
+    "test": "tsx --test \"src/**/*.test.ts\"",
+    "hedera:check": "tsx --conditions=react-server scripts/hedera-check.ts"
   },
   "dependencies": {
     "@hiero-ledger/sdk": "2.89.1",
