@@ -9,6 +9,11 @@ import { requireActor } from "@/lib/auth/session";
 import { getAdminNeedReview } from "@/lib/data/panel";
 import { CATEGORY_LABEL, formatDate, formatQuantity, NEED_KIND_LABEL, PRIORITY_LABEL } from "@/lib/domain/labels";
 
+// validateNeedAction publica en Hedera (publishEvent); rejectNeedAction no publica. Publicar: envío + receipt
+// (≈3–7 s observado) y hasta 5 consultas al Mirror Node (1,5 s + timeout de 8 s cada una).
+// Observado de punta a punta: 1–18 s; peor caso teórico ≈ 50 s. Ver docs/DEPLOY.md.
+export const maxDuration = 60;
+
 const PRIVACY_CHECKLIST = [
   "No incluye nombres de menores.",
   "No incluye datos individuales de estudiantes (las necesidades se expresan de forma agregada).",

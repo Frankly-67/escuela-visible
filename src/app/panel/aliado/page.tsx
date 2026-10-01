@@ -6,6 +6,11 @@ import { requireActor } from "@/lib/auth/session";
 import { getSupporterPanel } from "@/lib/data/panel";
 import { COMMITMENT_STATUS_LABEL } from "@/lib/domain/labels";
 
+// Las Server Actions de esta página (reportDeliveryAction) publican en Hedera (publishEvent): envío + receipt
+// (≈3–7 s observado) y hasta 5 consultas al Mirror Node (1,5 s + timeout de 8 s cada una).
+// Observado de punta a punta: 1–18 s; peor caso teórico ≈ 50 s. Ver docs/DEPLOY.md.
+export const maxDuration = 60;
+
 export default async function SupporterPanelPage() {
   await requireActor(["supporter"]);
   // Los compromisos salen de la sesión (actor.id) dentro de getSupporterPanel(); nunca de la URL.

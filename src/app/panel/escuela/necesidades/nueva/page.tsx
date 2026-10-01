@@ -2,6 +2,11 @@ import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { NeedForm } from "@/components/panel/need-form";
 import { requireActor } from "@/lib/auth/session";
 
+// Las Server Actions de esta página (createNeedAction) publican en Hedera (publishEvent): envío + receipt
+// (≈3–7 s observado) y hasta 5 consultas al Mirror Node (1,5 s + timeout de 8 s cada una).
+// Observado de punta a punta: 1–18 s; peor caso teórico ≈ 50 s. Ver docs/DEPLOY.md.
+export const maxDuration = 60;
+
 /** Registrar una necesidad para la escuela en sesión (la escuela no se elige: sale de la sesión). */
 export default async function NewNeedPage() {
   const actor = await requireActor(["school_rep"]);

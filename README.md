@@ -34,7 +34,37 @@ identificadores y hashes; nunca texto libre.
 ## Datos DEMO
 
 Las escuelas de demostración son **ficticias** (municipios reales, escuelas inventadas)
-y están marcadas como DEMO en la base (`is_demo`) y en la interfaz.
+y están marcadas como DEMO en la base (`is_demo`) y en la interfaz. Hay cinco cuentas DEMO
+(administración, tres escuelas y un aliado), sin datos personales reales.
+
+## Estado del MVP
+
+El flujo completo funciona desde la interfaz y se ha probado con datos reales:
+
+| Paso | Rol | Evento HCS |
+|---|---|---|
+| Registrar necesidad | escuela | `NEED_CREATED` |
+| Validar / no aprobar | admin | `NEED_VALIDATED` (no aprobar no publica) |
+| Comprometer apoyo | aliado | `COMMITMENT_CREATED` |
+| Reportar entrega | aliado | `DELIVERY_REPORTED` |
+| Confirmar recepción (completa la necesidad al llegar a la meta) | escuela | `SCHOOL_CONFIRMED` |
+
+Casos DEMO: El Mirador (abierta a apoyos), La Cascada (completada 30/30) y Los Robles
+(no aprobada). Topic de Hedera Testnet `0.0.10796342`; cada evento se comprueba en vivo en
+`/verify/[id]`.
+
+Fuera del MVP: pagos, cripto, tokens/NFT, registro de usuarios, notificaciones, notas y
+evidencias de entrega.
+
+## Arquitectura
+
+```
+Navegador → Server Components / Server Actions (Next.js 16, runtime Node.js)
+  · Lecturas: src/lib/data (server-only) → Supabase con la sesión (RLS + permisos de columnas)
+  · Escrituras: Server Action → requireActor → src/lib/flow (dominio) → RPC flow_* (transacción:
+    estado + evento canónico SHA-256 en el outbox hedera_events) → publishEvent → Hedera HCS
+  · Verificación pública: /verify/[id] → 13 comprobaciones contra el Mirror Node
+```
 
 ## Stack
 
@@ -56,6 +86,8 @@ npm run dev
 | `npm run typecheck` | Genera tipos de rutas y ejecuta `tsc --noEmit` |
 | `npm run build` | Build de producción |
 | `npm test` | Pruebas unitarias (`node:test` vía `tsx`) |
+| `npm run test:pglite` / `test:privacy` / `test:bundle` | Regresiones offline (ver `docs/REGRESIONES.md`) |
+| `npm run test:regression` / `test:regression:http` | Regresiones de solo lectura con datos reales (ver `docs/REGRESIONES.md`) |
 | `npm run db:types` | Regenera `src/types/database.ts` desde el proyecto Supabase enlazado |
 | `npm run env:check` | Verifica variables de entorno sin imprimir valores |
 | `npm run script -- scripts/<x>.ts` | Ejecuta un script con `.env.local` y la condición `react-server` |
@@ -66,7 +98,9 @@ ejecutan con `--conditions=react-server`, lo que les permite reutilizar los mód
 
 ### Base de datos
 
-Migraciones en `supabase/migrations/` y datos DEMO en `supabase/seed.sql`.
+Migraciones en `supabase/migrations/` y datos DEMO en `supabase/seed.sql`. El proyecto
+DEMO ya tiene todo aplicado: estos comandos son para montar un proyecto nuevo, no para el
+despliegue (ver `docs/DEPLOY.md`).
 
 ```bash
 npx supabase login
@@ -77,9 +111,12 @@ npx supabase db push             # aplica migraciones
 
 ### Claves
 
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: cliente/navegador.
-- `SUPABASE_SECRET_KEY`: **solo servidor**. Nunca con prefijo `NEXT_PUBLIC_`, nunca en Git.
-- `HEDERA_OPERATOR_KEY`: **solo servidor**.
+Ver `.env.example` (nombres y explicación) y la tabla de `docs/DEPLOY.md`.
+
+- `NEXT_PUBLIC_*`: públicas, se incluyen en el bundle del navegador.
+- `SUPABASE_SECRET_KEY` y `HEDERA_OPERATOR_KEY`: **solo servidor**, secretas. Nunca con
+  prefijo `NEXT_PUBLIC_`, nunca en Git.
+- `DEMO_ACCOUNT_PASSWORD`: solo scripts locales y regresiones.
 
 ### Modelo de seguridad
 
@@ -101,30 +138,42 @@ npx supabase db push             # aplica migraciones
 
 ```
 src/
-  app/                 rutas (App Router)
+  app/                 rutas: portada, escuelas, necesidades, /verify, /ingresar, /panel/* (escuela, aliado, admin)
+  components/          UI (necesidades, paneles, verificación, mapa, layout)
   lib/
-    env.ts             variables públicas
-    env.server.ts      variables de servidor (server-only)
+    actions/           traducción entre Server Actions e interfaz (formularios, mensajes)
+    auth/              sesión y requireActor
+    data/              lecturas server-only (públicas, paneles, verificación)
+    domain/            reglas puras: permisos, máquina de estados, progreso, textos
+    events/            evento canónico (payload, SHA-256, mensaje HCS)
+    flow/              operaciones del flujo (validación + RPC flow_*)
+    hedera/            publicación (outbox), Mirror Node, enlaces HashScan
+    verify/            verificación de eventos (13 comprobaciones)
     supabase/          clientes: browser, server (cookies), admin (secret), proxy
-    events/            tipos del evento canónico (hash y envío a Hedera: fase 2)
-  proxy.ts             refresco de sesión de Supabase (antes "middleware")
+    env.ts, env.server.ts
+  proxy.ts             refresco de sesión de Supabase
   types/database.ts    tipos de la base de datos
 supabase/
-  migrations/          esquema, RLS, vistas, storage
+  migrations/          esquema, RLS, vistas, permisos por columna, RPC del flujo
   seed.sql             escuelas DEMO
+scripts/               cuentas DEMO, E2E manuales (con --confirm), Hedera, regresiones
+docs/                  REGRESIONES.md, DEPLOY.md y auditorías de cada fase
 ```
+
+## Documentación
+
+- `docs/REGRESIONES.md`: qué pruebas existen, cuáles son de solo lectura y cómo ejecutarlas.
+- `docs/DEPLOY.md`: preparación para Vercel (variables, Supabase, Hedera, smoke test).
+- `docs/AUDITORIA_B3.md` … `docs/AUDITORIA_B5.md`: decisiones de cada fase.
 
 ## Deuda técnica
 
-- **Lecturas que necesitan identificadores protegidos.** Desde la API pública ya no se
-  pueden leer ni relacionar con `profiles` los identificadores de quien creó, validó,
-  apoyó o confirmó (resuelto en B0/B0.1, ver *Modelo de seguridad*). Por eso, las
-  funciones que los necesiten (p. ej. "mis compromisos" del aliado, o publicaciones
-  fallidas para el admin) deben leerlos en el servidor: con el cliente admin dentro de
-  una función `server-only`, siempre después de `requireActor([...])` y filtrando por
-  el actor de la sesión (p. ej. `supporter_id = actor.id`), o con funciones
-  `security definer` que usen `auth.uid()` (requiere migración autorizada). Esos
-  identificadores no se muestran en la interfaz.
+- **Lecturas con identificadores protegidos.** "Mis compromisos" del aliado se lee en el
+  servidor con el cliente admin, después de `requireActor(['supporter'])` y filtrando por
+  `supporter_id = actor.id` (única excepción, en `src/lib/data/panel.ts`). Alternativa más
+  estricta pendiente: funciones `security definer` con `auth.uid()` (requiere migración).
+- **Reintento de publicación.** Si una publicación en Hedera falla, el evento queda pendiente
+  en el outbox; todavía no hay un botón de reintento en la interfaz.
 - **Notas de compromisos y entregas.** `note` y `delivery_note` ya no son legibles por
   `anon`/`authenticated`. Los flujos DEMO las guardan en `NULL`; queda pendiente decidir
   si la interfaz debe ofrecerlas y a quién mostrarlas.

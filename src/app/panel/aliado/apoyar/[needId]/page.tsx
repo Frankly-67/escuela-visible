@@ -10,6 +10,11 @@ import { getNeed } from "@/lib/data/public";
 import { formatQuantity } from "@/lib/domain/labels";
 import { availableQuantity } from "@/lib/domain/state-machine";
 
+// Las Server Actions de esta página (createCommitmentAction) publican en Hedera (publishEvent): envío + receipt
+// (≈3–7 s observado) y hasta 5 consultas al Mirror Node (1,5 s + timeout de 8 s cada una).
+// Observado de punta a punta: 1–18 s; peor caso teórico ≈ 50 s. Ver docs/DEPLOY.md.
+export const maxDuration = 60;
+
 /**
  * Comprometerse con una necesidad (solo supporter). La necesidad se lee con la
  * lectura pública existente (RLS). El disponible mostrado es orientativo: el

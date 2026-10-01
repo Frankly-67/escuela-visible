@@ -8,6 +8,11 @@ import { requireActor } from "@/lib/auth/session";
 import { getSchoolPanel } from "@/lib/data/panel";
 import { formatDate, formatQuantity } from "@/lib/domain/labels";
 
+// Las Server Actions de esta página (confirmReceiptAction) publican en Hedera (publishEvent): envío + receipt
+// (≈3–7 s observado) y hasta 5 consultas al Mirror Node (1,5 s + timeout de 8 s cada una).
+// Observado de punta a punta: 1–18 s; peor caso teórico ≈ 50 s. Ver docs/DEPLOY.md.
+export const maxDuration = 60;
+
 export default async function SchoolPanelPage() {
   await requireActor(["school_rep"]);
   // La escuela sale de la sesión (actor.schoolId) dentro de getSchoolPanel(); nunca de la URL.
