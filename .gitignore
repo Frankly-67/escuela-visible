@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# worker de MapLibre copiado desde node_modules (scripts/copy-maplibre-worker.mjs)
+/public/maplibre/
+
 # supabase cli local state
 supabase/.temp/
 supabase/.branches/
