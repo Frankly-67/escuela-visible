@@ -75,6 +75,8 @@ const NEED = "769e4e92-4d46-4421-9d7b-c998f125a480";
 // Estado DEMO tras el E2E real de B3 (aprobado): La Cascada publicada, Los Robles no aprobada.
 const CASCADA_NEED = "67c4425c-0622-4cd4-9306-b055da760f19";
 const ROBLES_NEED = "9b9912da-8149-466e-9eeb-b7dc829bd477";
+// B5.3 (autorizada): necesidad de prueba de El Mirador creada y validada en producción (eventos #12 y #13).
+const VERCEL_NEED = "2583d69d-f6cc-49bb-b3e3-f3e8a994227b";
 const all: Record<string, unknown> = {};
 
 console.log("── Firma de las funciones (no aceptan contexto de seguridad)");
@@ -90,9 +92,12 @@ await signIn("el-mirador");
 const mirador = await panel.getSchoolPanel();
 all.mirador = mirador;
 check(mirador?.school.slug === "escuela-demo-el-mirador", `school = ${mirador?.school.slug}`);
-check(mirador?.needs.length === 1 && mirador.needs[0].id === NEED, `needs: ${mirador?.needs.length} (${mirador?.needs[0]?.status}, validated_at ${mirador?.needs[0]?.validated_at ? "sí" : "no"})`);
-check(JSON.stringify(mirador?.counts) === JSON.stringify({ pending_validation: 0, published: 1, completed: 0, cancelled: 0 }), `counts ${JSON.stringify(mirador?.counts)}`);
-check(mirador?.needs[0].progress.confirmed === 5 && mirador.needs[0].progress.goal === 20, `progress ${JSON.stringify(mirador?.needs[0]?.progress)}`);
+const miradorNeed = mirador?.needs.find((n: { id: string }) => n.id === NEED);
+const vercelNeed = mirador?.needs.find((n: { id: string }) => n.id === VERCEL_NEED);
+check(mirador?.needs.length === 2 && miradorNeed !== undefined && vercelNeed !== undefined && mirador.needs.every((n: { status: string; validated_at: string | null }) => n.status === "published" && n.validated_at !== null), `needs: ${mirador?.needs.length} (published, validated_at ${mirador?.needs.every((n: { validated_at: string | null }) => n.validated_at) ? "sí" : "no"})`);
+check(JSON.stringify(mirador?.counts) === JSON.stringify({ pending_validation: 0, published: 2, completed: 0, cancelled: 0 }), `counts ${JSON.stringify(mirador?.counts)}`);
+check(miradorNeed?.progress.confirmed === 5 && miradorNeed.progress.goal === 20, `progress ${JSON.stringify(miradorNeed?.progress)}`);
+check(JSON.stringify(vercelNeed?.progress) === JSON.stringify({ goal: 1, committed: 0, confirmed: 0, active: 0 }), `progress B5.3 ${JSON.stringify(vercelNeed?.progress)}`);
 check(mirador?.pendingDeliveries.length === 0, `pendingDeliveries: ${mirador?.pendingDeliveries.length} (el compromiso ya está confirmado)`);
 const history = await panel.getSchoolNeedHistory(NEED);
 all.history = history;
@@ -147,14 +152,14 @@ await signOut();
 console.log("── Admin");
 await signIn("admin");
 const ov = await panel.getAdminOverview();
-check(JSON.stringify(ov.counts) === JSON.stringify({ pending_validation: 0, published: 1, completed: 1, cancelled: 1 }), `counts ${JSON.stringify(ov.counts)}`);
-check(JSON.stringify(ov.publication) === JSON.stringify({ pending: 0, submitted: 11, failed: 0 }), `publication ${JSON.stringify(ov.publication)}`);
-// 11 eventos; la actividad reciente está limitada a 10 (RECENT_ACTIVITY_LIMIT), la más reciente primero.
-check(ov.recentActivity.length === 10 && ov.recentActivity[0].eventId === "17146fd2-a578-49d2-8fee-01e17fccc662", `recentActivity: ${ov.recentActivity.length} (la primera: SCHOOL_CONFIRMED #11)`);
+check(JSON.stringify(ov.counts) === JSON.stringify({ pending_validation: 0, published: 2, completed: 1, cancelled: 1 }), `counts ${JSON.stringify(ov.counts)}`);
+check(JSON.stringify(ov.publication) === JSON.stringify({ pending: 0, submitted: 13, failed: 0 }), `publication ${JSON.stringify(ov.publication)}`);
+// 13 eventos; la actividad reciente está limitada a 10 (RECENT_ACTIVITY_LIMIT), la más reciente primero.
+check(ov.recentActivity.length === 10 && ov.recentActivity[0].eventId === "f8249d5c-7bda-4d2e-9d86-788cab33b083", `recentActivity: ${ov.recentActivity.length} (la primera: NEED_VALIDATED #13)`);
 const needsAll = await panel.getAdminNeeds(undefined);
 const bySchool = needsAll.ok ? Object.fromEntries(needsAll.needs.map((n: { id: string; school: { slug: string } | null }) => [n.id, n.school?.slug])) : {};
-check(needsAll.ok && needsAll.needs.length === 3 && needsAll.filter === null && bySchool[NEED] === "escuela-demo-el-mirador" && bySchool[CASCADA_NEED] === "escuela-demo-la-cascada" && bySchool[ROBLES_NEED] === "escuela-demo-los-robles", `sin filtro: ${needsAll.ok ? needsAll.needs.length : "error"} (cada necesidad con su escuela)`);
-const EXPECTED_BY_STATUS: Record<string, string[]> = { pending_validation: [], published: [NEED], completed: [CASCADA_NEED], cancelled: [ROBLES_NEED] };
+check(needsAll.ok && needsAll.needs.length === 4 && needsAll.filter === null && bySchool[NEED] === "escuela-demo-el-mirador" && bySchool[VERCEL_NEED] === "escuela-demo-el-mirador" && bySchool[CASCADA_NEED] === "escuela-demo-la-cascada" && bySchool[ROBLES_NEED] === "escuela-demo-los-robles", `sin filtro: ${needsAll.ok ? needsAll.needs.length : "error"} (cada necesidad con su escuela)`);
+const EXPECTED_BY_STATUS: Record<string, string[]> = { pending_validation: [], published: [NEED, VERCEL_NEED].sort(), completed: [CASCADA_NEED], cancelled: [ROBLES_NEED] };
 const perStatus: string[] = [];
 for (const s of ["pending_validation", "published", "completed", "cancelled"]) {
   const r = await panel.getAdminNeeds(s);

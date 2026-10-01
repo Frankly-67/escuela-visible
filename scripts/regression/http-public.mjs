@@ -74,7 +74,7 @@ console.log("── Paneles");
 {
   const b = new Browser(); await login(b, "admin");
   const p = await b.visit("/panel/admin"); const t = strip(p.html);
-  check(["3 Todas", "0 Pendientes de validación", "1 Abiertas a apoyos", "1 Completadas", "1 No aprobadas", "11 Publicados", "0 Pendientes", "0 Fallidos"].every((x) => t.includes(x)), "panel admin: 3 / 0 / 1 / 1 / 1 · publicación 11 / 0 / 0");
+  check(["4 Todas", "0 Pendientes de validación", "2 Abiertas a apoyos", "1 Completadas", "1 No aprobadas", "13 Publicados", "0 Pendientes", "0 Fallidos"].every((x) => t.includes(x)), "panel admin: 4 / 0 / 2 / 1 / 1 · publicación 13 / 0 / 0");
   for (const id of [CASCADA_NEED, ROBLES_NEED]) {
     const r = await b.visit(`/panel/admin/necesidades/${id}`); const rt = strip(r.html);
     check(rt.includes("Esta necesidad ya fue revisada.") && !rt.includes("Validar y publicar"), `revisión ${id.slice(0, 8)}…: ya revisada, sin botones`);

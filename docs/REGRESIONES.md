@@ -61,7 +61,7 @@ Todas están en `scripts/regression/`. Cada una imprime `✓`/`✗` por comproba
 
 | Archivo | Tipo | Objetivo |
 |---|---|---|
-| `state.mts` | lectura Supabase + Mirror Node | Conteos DEMO; El Mirador sin cambios; La Cascada completada 30/30; Los Robles no aprobada; los 11 eventos publicados y **VERIFIED 13/13**; mensajes HCS con exactamente los 9 campos y sin datos de personas. |
+| `state.mts` | lectura Supabase + Mirror Node | Conteos DEMO; El Mirador sin cambios; La Cascada completada 30/30; Los Robles no aprobada; los 13 eventos publicados y **VERIFIED 13/13**; mensajes HCS con exactamente los 9 campos y sin datos de personas. |
 | `data-layer.mts` | funciones reales de `src/lib/data/panel.ts` con sesiones DEMO | Firmas sin contexto de seguridad; redirecciones por rol; contenido y aislamiento de cada panel; filtros del admin; ninguna clave sensible, UUID de persona, `school_id` ni email en los DTO. |
 | `actions-needs.mts` | Server Actions reales de B3 | Crear / validar / no aprobar con las funciones de flow reales; la base y Hedera sustituidas por **dobles** (las RPC solo se registran, `publishEvent` no publica). Roles, `schoolId` del formulario ignorado, errores, publicación pendiente. |
 | `actions-support.mts` | Server Actions reales de B4 | Comprometer / reportar / confirmar con dobles: roles, dueño, otra escuela, `committed → confirmed` bloqueado, cantidades, carreras, errores, publicación pendiente. |
@@ -85,15 +85,19 @@ ajeno (CSRF), sin sesión, rol incorrecto, cantidad no numérica o mayor que lo 
 
 ## 4. Datos que esperan
 
-Las expectativas codifican el estado DEMO aprobado tras el E2E real de B4:
+Las expectativas codifican el estado aprobado tras el E2E real de B4, las 2 escrituras reales
+autorizadas en B5.3 (necesidad «Prueba Vercel HCS (DEMO)» de El Mirador, creada y validada) y la
+inserción autorizada de la escuela real documentada (`is_demo = false`, sin necesidades ni eventos):
 
 | Dato | Valor |
 |---|---|
-| schools / profiles / needs / commitments / hedera_events | 3 / 5 / 3 / 2 / 11 |
+| schools / profiles / needs / commitments / hedera_events | 4 / 5 / 4 / 2 / 13 |
 | El Mirador | `published`, 5/20 confirmado, compromiso de 5 `confirmed`, eventos #1–#5 |
+| El Mirador (B5.3) | `2583d69d…` `published`, meta 1, 0 compromisos, eventos #12, #13 |
 | La Cascada | `completed`, 30/30, compromiso de 30 `confirmed`, eventos #6, #7, #9, #10, #11 |
 | Los Robles | `cancelled`, 0 compromisos, evento #8 |
-| Hedera | topic `0.0.10796342`, 11 mensajes, todos VERIFIED |
+| I.E. Rural El Hoyo – Sede C Santillana | escuela real, `is_demo = false`, 0 necesidades, 0 eventos |
+| Hedera | topic `0.0.10796342`, 13 mensajes, todos VERIFIED |
 
 Si los datos cambian **de forma legítima** (un E2E autorizado), las pruebas fallarán en esos
 valores: hay que actualizar las expectativas (sin quitar comprobaciones) y documentarlo aquí.

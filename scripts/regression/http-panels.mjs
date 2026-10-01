@@ -50,7 +50,7 @@ console.log("── Escuela El Mirador");
   const r = await b.visit("/panel/escuela"); const t = strip(r.html);
   check(r.status === 200 && t.includes("El Mirador") && t.includes("DEMO"), "ve su escuela (con DEMO)");
   check(r.html.includes(`href="/panel/escuela/necesidades/${NEED}"`) && /5 de 20 \S+ confirmados por la escuela/.test(t), "ve su necesidad con progreso «5 de 20 … confirmados por la escuela»");
-  check(["0 Pendientes de validación", "1 Abiertas a apoyos", "0 Completadas", "0 No aprobadas", "0 Entregas por confirmar"].every((x) => t.includes(x)), "resumen: 0 / 1 / 0 / 0 / 0 entregas");
+  check(["0 Pendientes de validación", "2 Abiertas a apoyos", "0 Completadas", "0 No aprobadas", "0 Entregas por confirmar"].every((x) => t.includes(x)), "resumen: 0 / 2 / 0 / 0 / 0 entregas");
   check(t.includes("No hay entregas pendientes de confirmar.") && t.includes("Solo lo confirmado por la escuela cuenta como recibido"), "estado vacío de entregas y texto de recepción");
   check(noActions(r.html), "sin botones ni formularios de acción en el contenido");
   privacy("El Mirador /panel/escuela", r.html);
@@ -130,14 +130,14 @@ console.log("── Admin");
 {
   const b = new Browser(); await login(b, "admin");
   const r = await b.visit("/panel/admin"); const t = strip(r.html);
-  check(["3 Todas", "0 Pendientes de validación", "1 Abiertas a apoyos", "1 Completadas", "1 No aprobadas"].every((x) => t.includes(x)), "contadores 3 / 0 / 1 / 1 / 1");
-  check(["11 Publicados", "0 Pendientes", "0 Fallidos"].every((x) => t.includes(x)) && !t.includes("Hay registros con publicación fallida"), "publicación 11 / 0 / 0, sin aviso de fallos");
+  check(["4 Todas", "0 Pendientes de validación", "2 Abiertas a apoyos", "1 Completadas", "1 No aprobadas"].every((x) => t.includes(x)), "contadores 4 / 0 / 2 / 1 / 1");
+  check(["13 Publicados", "0 Pendientes", "0 Fallidos"].every((x) => t.includes(x)) && !t.includes("Hay registros con publicación fallida"), "publicación 13 / 0 / 0, sin aviso de fallos");
   const activity = r.html.slice(r.html.indexOf('id="actividad"'));
   check(verifyLinks(activity).size === 10, `actividad reciente: ${verifyLinks(activity).size} eventos con «Ver verificación» (límite 10)`);
   check(r.html.includes(`href="/panel/admin/necesidades/${NEED}"`) && t.includes("Revisar"), "lista con «Revisar»");
   check(noActions(r.html), "sin botones validar/rechazar");
   privacy("Admin /panel/admin", r.html);
-  for (const [s, n] of [["pending_validation", 0], ["published", 1], ["completed", 1], ["cancelled", 1]]) {
+  for (const [s, n] of [["pending_validation", 0], ["published", 2], ["completed", 1], ["cancelled", 1]]) {
     const x = await b.visit(`/panel/admin?estado=${s}`); const xt = strip(x.html);
     const found = (x.html.match(/href="\/panel\/admin\/necesidades\//g) ?? []).length;
     check(x.status === 200 && found === n && (n > 0 || xt.includes("No hay necesidades en este estado.")) && /aria-current="page"/.test(x.html), `filtro ${s}: ${found} necesidad(es)`);

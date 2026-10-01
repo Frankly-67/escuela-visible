@@ -1,6 +1,9 @@
 // Estado de los datos DEMO (Supabase) y del registro en Hedera — SOLO LECTURA.
 //
-// Comprueba que los datos coinciden con el estado aprobado tras el E2E real de B4
+// Comprueba que los datos coinciden con el estado aprobado tras el E2E real de B4,
+// las 2 escrituras reales autorizadas en B5.3 (necesidad «Prueba Vercel HCS (DEMO)»
+// de El Mirador: creada y validada, eventos #12 y #13) y la escuela real documentada
+// (I.E. Rural El Hoyo – Sede C Santillana, is_demo = false, sin necesidades ni eventos)
 // y que cada evento sigue VERIFICADO contra el Mirror Node (las mismas 13
 // comprobaciones que /verify). También revisa la privacidad de los mensajes HCS
 // (exactamente los 9 campos canónicos, sin ids ni nombres de personas).
@@ -18,8 +21,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { fromEventRow, verifyEvent } from "@/lib/verify/verify-event";
 
 const EXPECTED = {
-  counts: { schools: 3, profiles: 5, needs: 3, commitments: 2, hedera_events: 11 },
-  topicMessages: 11,
+  counts: { schools: 4, profiles: 5, needs: 4, commitments: 2, hedera_events: 13 },
+  topicMessages: 13,
   elMirador: {
     needId: "769e4e92-4d46-4421-9d7b-c998f125a480",
     status: "published",
