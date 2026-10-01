@@ -1,0 +1,24 @@
+# Archivos que NO se suben con `vercel deploy` (CLI). La CLI no usa .gitignore.
+# Ver docs/DEPLOY.md.
+
+# Variables de entorno: nunca se suben (en Vercel se configuran en el proyecto).
+.env*
+
+# Control de versiones, dependencias y salidas de build (Vercel instala y construye).
+.git
+.git/**
+node_modules
+.next
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+
+# Generado en el build (prebuild copia el worker de MapLibre).
+public/maplibre
+
+# Locales y temporales.
+coverage
+*.log
+*.pem
+supabase/.temp
+supabase/.branches
