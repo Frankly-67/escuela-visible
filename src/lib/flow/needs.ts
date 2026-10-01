@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { authorizeCreateNeed, type Actor } from "@/lib/domain/permissions";
+import { authorizeCreateNeed, authorizeValidateNeed, type Actor } from "@/lib/domain/permissions";
 import { buildEvent } from "@/lib/events/build";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database";
@@ -11,6 +11,9 @@ import { FlowError, flowErrorFromRpc } from "./errors";
 import { createNeedInputSchema, type CreateNeedInput } from "./schemas";
 
 type CreateNeedArgs = Database["public"]["Functions"]["flow_create_need"]["Args"];
+type ValidateNeedArgs = Database["public"]["Functions"]["flow_validate_need"]["Args"];
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /**
  * NEED_CREATED: el representante de la escuela crea una necesidad.
@@ -65,4 +68,55 @@ export async function createNeed(actor: Actor, input: CreateNeedInput) {
   if (error) throw flowErrorFromRpc(error);
 
   return { needId, eventId: event.payload.eventId, event };
+}
+
+/**
+ * NEED_VALIDATED: la administración valida una necesidad pendiente y la
+ * hace pública (pending_validation → published).
+ *
+ *  1. lee el estado y la escuela de la necesidad (la escuela del evento sale
+ *     de la base, no del cliente);
+ *  2. comprueba permiso y transición (authorizeValidateNeed);
+ *  3. construye el evento canónico NEED_VALIDATED (rol admin);
+ *  4. llama a flow_validate_need, que en UNA transacción bloquea la fila,
+ *     vuelve a validar actor, estado y evento (SHA-256), publica la necesidad
+ *     y registra el evento pendiente en hedera_events.
+ *
+ * No publica en Hedera: eso lo hace publishEvent(eventId) después.
+ */
+export async function validateNeed(actor: Actor, needId: string) {
+  if (!UUID.test(needId)) throw new FlowError("INVALID_INPUT", "Identificador de necesidad inválido.");
+
+  const db = createAdminClient();
+  const { data: need, error: readError } = await db
+    .from("needs")
+    .select("id, school_id, status")
+    .eq("id", needId)
+    .maybeSingle();
+  if (readError) throw new Error(`No se pudo leer la necesidad: ${readError.message}`);
+  if (!need) throw new FlowError("NOT_FOUND", "La necesidad no existe.");
+
+  const decision = authorizeValidateNeed(actor, { schoolId: need.school_id, status: need.status });
+  if (!decision.ok) throw new FlowError(decision.code, decision.message);
+
+  const event = buildEvent({
+    type: "NEED_VALIDATED",
+    needId: need.id,
+    schoolId: need.school_id,
+    commitmentId: null,
+    actorRole: "admin",
+  });
+
+  const args = {
+    p_actor_id: actor.id,
+    p_need_id: need.id,
+    p_event_id: event.payload.eventId,
+    p_payload_canonical: event.payloadCanonical,
+    p_payload_hash: event.payloadHash,
+  } satisfies ValidateNeedArgs;
+
+  const { error } = await db.rpc("flow_validate_need", args);
+  if (error) throw flowErrorFromRpc(error);
+
+  return { needId: need.id, eventId: event.payload.eventId, event };
 }

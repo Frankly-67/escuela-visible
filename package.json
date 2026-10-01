@@ -18,7 +18,8 @@
     "hedera:create-topic": "tsx --conditions=react-server scripts/hedera-create-topic.ts",
     "hedera:verify": "tsx --conditions=react-server scripts/hedera-verify.ts",
     "demo:accounts": "tsx --conditions=react-server scripts/demo-accounts.ts",
-    "e2e:first-event": "tsx --conditions=react-server scripts/e2e-first-event.ts"
+    "e2e:first-event": "tsx --conditions=react-server scripts/e2e-first-event.ts",
+    "e2e:validate-need": "tsx --conditions=react-server scripts/e2e-validate-need.ts"
   },
   "dependencies": {
     "@hiero-ledger/sdk": "2.89.1",
