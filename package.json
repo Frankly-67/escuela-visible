@@ -14,6 +14,11 @@
     "script": "tsx --conditions=react-server",
     "env:check": "tsx --conditions=react-server scripts/env-check.ts",
     "test": "tsx --test \"src/**/*.test.ts\"",
+    "test:pglite": "node scripts/regression/run.mjs pglite",
+    "test:privacy": "node scripts/regression/secret-scan.mjs",
+    "test:bundle": "node scripts/regression/bundle-scan.mjs",
+    "test:regression": "node scripts/regression/run.mjs regression",
+    "test:regression:http": "node scripts/regression/run.mjs http",
     "hedera:check": "tsx --conditions=react-server scripts/hedera-check.ts",
     "hedera:create-topic": "tsx --conditions=react-server scripts/hedera-create-topic.ts",
     "hedera:verify": "tsx --conditions=react-server scripts/hedera-verify.ts",
@@ -40,6 +45,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
