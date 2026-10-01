@@ -24,6 +24,13 @@ export const NEED_STATUS_LABEL: Record<Enums<"need_status">, string> = {
   cancelled: "No aprobada",
 };
 
+/** Estados de un compromiso que usa el flujo (`cancelled` no tiene transiciones). */
+export const COMMITMENT_STATUS_LABEL: Record<Exclude<Enums<"commitment_status">, "cancelled">, string> = {
+  committed: "Apoyo comprometido",
+  delivery_reported: "Entrega reportada",
+  confirmed: "Recepción confirmada por la escuela",
+};
+
 export const NEED_KIND_LABEL: Record<Enums<"need_kind">, string> = {
   need: "Necesidad",
   campaign: "Campaña comunitaria",
