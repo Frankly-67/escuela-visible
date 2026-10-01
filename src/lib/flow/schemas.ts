@@ -29,3 +29,32 @@ export const createNeedInputSchema = z.strictObject({
 
 export type CreateNeedInput = z.input<typeof createNeedInputSchema>;
 export type CreateNeedData = z.output<typeof createNeedInputSchema>;
+
+/*
+ * Compromisos y entregas. Los límites son los que YA exige la base de datos
+ * (numeric(12,2), note ≤ 500, delivery_note ≤ 1000); el límite de cantidad
+ * restante lo comprueban authorizeCreateCommitment y flow_create_commitment.
+ * Las notas nunca viajan a Hedera.
+ */
+export const createCommitmentInputSchema = z.strictObject({
+  needId: uuid,
+  quantity: z
+    .number()
+    .positive("La cantidad debe ser mayor que cero")
+    .max(9_999_999_999.99)
+    .refine(twoDecimals, "La cantidad admite máximo 2 decimales"),
+  note: z.string().trim().max(500, "La nota es muy larga").nullable().default(null),
+});
+
+export const reportDeliveryInputSchema = z.strictObject({
+  commitmentId: uuid,
+  deliveryNote: z.string().trim().max(1000, "La nota de entrega es muy larga").nullable().default(null),
+});
+
+export const confirmReceiptInputSchema = z.strictObject({
+  commitmentId: uuid,
+});
+
+export type CreateCommitmentInput = z.input<typeof createCommitmentInputSchema>;
+export type ReportDeliveryInput = z.input<typeof reportDeliveryInputSchema>;
+export type ConfirmReceiptInput = z.input<typeof confirmReceiptInputSchema>;

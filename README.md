@@ -103,3 +103,14 @@ supabase/
   migrations/          esquema, RLS, vistas, storage
   seed.sql             escuelas DEMO
 ```
+
+## Deuda técnica
+
+- **Notas de compromisos legibles públicamente.** La política RLS
+  `commitments: lectura si la necesidad es visible` permite que cualquier visitante
+  (anon) lea la fila completa de un compromiso de una necesidad pública, incluidas
+  `note` y `delivery_note` (texto libre). La interfaz no las muestra, pero la API
+  pública de Supabase sí las devuelve. Mientras no se resuelva, los flujos DEMO
+  guardan ambas notas en `NULL`. Pendiente decidir si deben ser públicas y, si no,
+  restringirlas con una migración autorizada (p. ej. vista pública sin esas columnas
+  o permisos por columna).
