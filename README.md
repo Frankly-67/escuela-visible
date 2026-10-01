@@ -84,6 +84,16 @@ npx supabase db push             # aplica migraciones
 ### Modelo de seguridad
 
 - **Lecturas:** RLS decide qué ve cada rol (`anon`, `supporter`, `school_rep`, `admin`).
+- **Columnas:** además de RLS (que filtra filas), `anon` y `authenticated` solo tienen
+  `SELECT` sobre columnas explícitas de `needs`, `commitments` y `hedera_events`
+  (migraciones `20261001000400` y `20261001000500`). No pueden leer, ni siquiera el
+  admin con su sesión:
+  - `needs.created_by`, `needs.validated_by`
+  - `commitments.supporter_id`, `confirmed_by`, `note`, `delivery_note`, `delivery_evidence_path`
+  - `hedera_events.submission_error`, `attempts`, `payload`
+
+  Las consultas con la publishable key o la sesión deben listar columnas (`select *`
+  sobre esas tablas falla). Las columnas nuevas no quedan legibles salvo `grant` explícito.
 - **Escrituras:** no hay políticas de escritura para el cliente. Todas pasan por Server
   Actions que validan rol y transición de estado y usan la secret key.
 
@@ -106,11 +116,18 @@ supabase/
 
 ## Deuda técnica
 
-- **Notas de compromisos legibles públicamente.** La política RLS
-  `commitments: lectura si la necesidad es visible` permite que cualquier visitante
-  (anon) lea la fila completa de un compromiso de una necesidad pública, incluidas
-  `note` y `delivery_note` (texto libre). La interfaz no las muestra, pero la API
-  pública de Supabase sí las devuelve. Mientras no se resuelva, los flujos DEMO
-  guardan ambas notas en `NULL`. Pendiente decidir si deben ser públicas y, si no,
-  restringirlas con una migración autorizada (p. ej. vista pública sin esas columnas
-  o permisos por columna).
+- **Lecturas que necesitan identificadores protegidos.** Desde la API pública ya no se
+  pueden leer ni relacionar con `profiles` los identificadores de quien creó, validó,
+  apoyó o confirmó (resuelto en B0/B0.1, ver *Modelo de seguridad*). Por eso, las
+  funciones que los necesiten (p. ej. "mis compromisos" del aliado, o publicaciones
+  fallidas para el admin) deben leerlos en el servidor: con el cliente admin dentro de
+  una función `server-only`, siempre después de `requireActor([...])` y filtrando por
+  el actor de la sesión (p. ej. `supporter_id = actor.id`), o con funciones
+  `security definer` que usen `auth.uid()` (requiere migración autorizada). Esos
+  identificadores no se muestran en la interfaz.
+- **Notas de compromisos y entregas.** `note` y `delivery_note` ya no son legibles por
+  `anon`/`authenticated`. Los flujos DEMO las guardan en `NULL`; queda pendiente decidir
+  si la interfaz debe ofrecerlas y a quién mostrarlas.
+- **Perfiles públicos DEMO.** Las cuentas DEMO tienen `show_publicly = true`, por lo
+  que su nombre de rol es legible en `profiles`, aunque ya no se puede asociar a
+  necesidades ni compromisos desde la API pública.
