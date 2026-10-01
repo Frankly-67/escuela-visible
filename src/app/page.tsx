@@ -3,6 +3,7 @@ import Link from "next/link";
 import { NeedCard } from "@/components/needs/need-card";
 import { SchoolsMap, type MapSchool } from "@/components/schools/schools-map";
 import { Button } from "@/components/ui/button";
+import { DOCUMENTED_CASES, getDocumentedCase } from "@/content/documented-cases";
 import { findDemoVerifiedCase, getNeed, listSchools } from "@/lib/data/public";
 
 const STEPS = [
@@ -40,7 +41,25 @@ export default async function Home() {
     latitude: s.latitude,
     longitude: s.longitude,
     isDemo: s.is_demo,
+    // Una escuela DEMO nunca se presenta como caso real.
+    documented: !s.is_demo && getDocumentedCase(s.slug) !== null,
   }));
+  // Casos reales documentados que aún no están en la base de datos (contenido estático).
+  for (const c of DOCUMENTED_CASES) {
+    if (schools.some((s) => s.slug === c.slug)) continue;
+    const { name, municipality, department, latitude, longitude } = c.school;
+    mapSchools.push({
+      slug: c.slug,
+      name,
+      municipality,
+      department,
+      vereda: null,
+      latitude,
+      longitude,
+      isDemo: false,
+      documented: true,
+    });
+  }
 
   return (
     <>

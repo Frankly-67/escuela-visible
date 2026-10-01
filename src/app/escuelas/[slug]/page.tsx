@@ -1,22 +1,42 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { DocumentedCaseHero, DocumentedCaseSections } from "@/components/cases/documented-case";
 import { DemoBadge } from "@/components/common/demo-badge";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { NeedCard } from "@/components/needs/need-card";
-import { getSchoolBySlug, listNeedsBySchool } from "@/lib/data/public";
+import { getDocumentedCase, type DocumentedCase } from "@/content/documented-cases";
+import { getSchoolBySlug, listNeedsBySchool, type PublicNeed, type PublicSchool } from "@/lib/data/public";
+
+/**
+ * Escuela de la base de datos y, si existe, su caso real documentado (contenido estático).
+ * - El caso se muestra aunque la escuela aún no esté en la base de datos.
+ * - Nunca se muestra un caso real sobre una escuela marcada DEMO.
+ */
+async function loadSchool(
+  slug: string,
+): Promise<{ school: PublicSchool | null; documentedCase: DocumentedCase | null }> {
+  const school = await getSchoolBySlug(slug);
+  const documentedCase = school?.is_demo ? null : getDocumentedCase(slug);
+  return { school, documentedCase };
+}
 
 export async function generateMetadata(props: PageProps<"/escuelas/[slug]">): Promise<Metadata> {
   const { slug } = await props.params;
-  const school = await getSchoolBySlug(slug);
-  return school
-    ? { title: school.name, description: `${school.name} — ${school.municipality}, ${school.department}.` }
-    : { title: "Escuela no encontrada" };
+  const { school, documentedCase } = await loadSchool(slug);
+  const profile = school ?? documentedCase?.school;
+  if (!profile) return { title: "Escuela no encontrada" };
+  const summary = documentedCase ? ` Caso real documentado: ${documentedCase.summary}` : "";
+  return {
+    title: profile.name,
+    description: `${profile.name} — ${profile.municipality}, ${profile.department}.${summary}`,
+  };
 }
 
 export default async function SchoolPage(props: PageProps<"/escuelas/[slug]">) {
   const { slug } = await props.params;
-  const school = await getSchoolBySlug(slug);
+  const { school, documentedCase } = await loadSchool(slug);
+  if (documentedCase) return <DocumentedCasePage documentedCase={documentedCase} school={school} />;
   if (!school) notFound();
 
   const needs = await listNeedsBySchool(school.id);
@@ -46,28 +66,59 @@ export default async function SchoolPage(props: PageProps<"/escuelas/[slug]">) {
         <p className="text-xs text-muted-foreground">Ubicación aproximada.</p>
       </header>
 
-      <section aria-labelledby="necesidades" className="flex flex-col gap-5">
-        <div className="flex flex-col gap-1">
-          <h2 id="necesidades" className="text-2xl font-semibold tracking-tight">
-            Necesidades
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Las necesidades se muestran públicamente después de que la plataforma las valida.
-          </p>
-        </div>
-
-        {needs.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            {needs.map((need) => (
-              <NeedCard key={need.id} need={need} />
-            ))}
-          </div>
-        ) : (
-          <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
-            Esta escuela aún no tiene necesidades publicadas.
-          </p>
-        )}
-      </section>
+      <NeedsSection needs={needs} />
     </div>
+  );
+}
+
+async function DocumentedCasePage({
+  documentedCase,
+  school,
+}: {
+  documentedCase: DocumentedCase;
+  school: PublicSchool | null;
+}) {
+  // Solo si la escuela ya está en la base de datos y tiene necesidades publicadas en la plataforma.
+  const needs = school ? await listNeedsBySchool(school.id) : [];
+  return (
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-10 sm:px-6">
+      <Breadcrumbs
+        items={[
+          { label: "Inicio", href: "/" },
+          { label: "Escuelas", href: "/#escuelas" },
+          { label: documentedCase.school.name },
+        ]}
+      />
+      <DocumentedCaseHero documentedCase={documentedCase} />
+      <DocumentedCaseSections documentedCase={documentedCase} />
+      {needs.length > 0 && <NeedsSection needs={needs} />}
+    </div>
+  );
+}
+
+function NeedsSection({ needs }: { needs: PublicNeed[] }) {
+  return (
+    <section aria-labelledby="necesidades" className="flex flex-col gap-5">
+      <div className="flex flex-col gap-1">
+        <h2 id="necesidades" className="text-2xl font-semibold tracking-tight">
+          Necesidades
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Las necesidades se muestran públicamente después de que la plataforma las valida.
+        </p>
+      </div>
+
+      {needs.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          {needs.map((need) => (
+            <NeedCard key={need.id} need={need} />
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
+          Esta escuela aún no tiene necesidades publicadas.
+        </p>
+      )}
+    </section>
   );
 }

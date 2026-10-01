@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Map as MapLibreMap } from "maplibre-gl";
 
 import { DemoBadge } from "@/components/common/demo-badge";
+import { RealCaseBadge } from "@/components/common/real-case-badge";
 import { Button } from "@/components/ui/button";
 
 export type MapSchool = {
@@ -18,6 +19,8 @@ export type MapSchool = {
   latitude: number;
   longitude: number;
   isDemo: boolean;
+  /** Caso real documentado fuera de la plataforma (nunca DEMO). */
+  documented: boolean;
 };
 
 // Estilo vectorial de OpenFreeMap: sin API key; la atribución
@@ -27,11 +30,20 @@ const MAP_STYLE = "https://tiles.openfreemap.org/styles/liberty";
 // Worker servido desde public/ (ver scripts/copy-maplibre-worker.mjs).
 const WORKER_URL = "/maplibre/maplibre-gl-worker.mjs";
 
-const MARKER_CLASS =
-  "grid size-9 cursor-pointer place-items-center rounded-full border-2 border-white bg-primary text-primary-foreground shadow-md transition-transform hover:scale-110 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-foreground data-[selected=true]:scale-110 data-[selected=true]:bg-earth";
+// DEMO: círculo verde con una casa. Caso real documentado: cuadrado tierra con una marca de verificación
+// del documento (forma, color e icono distintos: no depende solo del color).
+const MARKER_BASE =
+  "grid size-9 cursor-pointer place-items-center border-2 border-white shadow-md transition-transform hover:scale-110 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-foreground data-[selected=true]:scale-125 data-[selected=true]:ring-4 data-[selected=true]:ring-foreground/35";
+const DEMO_MARKER_CLASS = `${MARKER_BASE} rounded-full bg-primary text-primary-foreground`;
+const REAL_MARKER_CLASS = `${MARKER_BASE} rounded-lg bg-earth text-earth-foreground`;
 
-const MARKER_ICON =
+const DEMO_MARKER_ICON =
   '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11 12 4l9 7" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 10v9h14v-9" stroke-linejoin="round"/></svg>';
+const REAL_MARKER_ICON =
+  '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3h9l3 3v15H6z" stroke-linejoin="round"/><path d="m9 13 2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+const kindLabel = (school: MapSchool) =>
+  school.documented ? "caso real documentado" : school.isDemo ? "escuela DEMO ficticia" : null;
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -74,9 +86,10 @@ export function SchoolsMap({ schools }: { schools: MapSchool[] }) {
         for (const school of schools) {
           const el = document.createElement("button");
           el.type = "button";
-          el.className = MARKER_CLASS;
-          el.innerHTML = MARKER_ICON;
-          el.setAttribute("aria-label", `${school.name}, ${school.municipality}`);
+          el.className = school.documented ? REAL_MARKER_CLASS : DEMO_MARKER_CLASS;
+          el.innerHTML = school.documented ? REAL_MARKER_ICON : DEMO_MARKER_ICON;
+          const kind = kindLabel(school);
+          el.setAttribute("aria-label", `${school.name}, ${school.municipality}${kind ? ` (${kind})` : ""}`);
           el.addEventListener("click", (event) => {
             event.stopPropagation();
             setSelectedSlug(school.slug);
@@ -157,13 +170,18 @@ export function SchoolsMap({ schools }: { schools: MapSchool[] }) {
                   <span className="block text-sm text-muted-foreground">
                     {school.municipality}, {school.department}
                   </span>
+                  <span className="mt-1.5 block">
+                    {school.documented ? <RealCaseBadge /> : school.isDemo ? <DemoBadge /> : null}
+                  </span>
                 </button>
               </li>
             );
           })}
         </ul>
+        <MapLegend />
         <p className="text-xs text-muted-foreground">
-          Ubicaciones aproximadas. Las escuelas DEMO y sus veredas son ficticias.
+          Ubicaciones aproximadas. Las escuelas DEMO y sus veredas son ficticias. Los casos reales documentados se
+          ubican de forma aproximada en su municipio.
         </p>
       </aside>
     </div>
@@ -193,11 +211,26 @@ function SelectedSchoolCard({ school, onClose }: { school: MapSchool; onClose: (
         </button>
       </div>
       <div className="mt-3 flex items-center justify-between gap-3">
-        {school.isDemo ? <DemoBadge /> : <span />}
+        {school.documented ? <RealCaseBadge /> : school.isDemo ? <DemoBadge /> : <span />}
         <Button asChild size="lg">
           <Link href={`/escuelas/${school.slug}`}>Ver escuela</Link>
         </Button>
       </div>
     </div>
+  );
+}
+
+function MapLegend() {
+  return (
+    <ul aria-label="Leyenda del mapa" className="flex flex-col gap-1.5 text-xs text-muted-foreground">
+      <li className="flex items-center gap-2">
+        <span aria-hidden className="size-3.5 rounded-full border-2 border-white bg-primary shadow-sm" />
+        Escuela DEMO (ficticia)
+      </li>
+      <li className="flex items-center gap-2">
+        <span aria-hidden className="size-3.5 rounded-sm border-2 border-white bg-earth shadow-sm" />
+        Caso real documentado fuera de Escuela Visible
+      </li>
+    </ul>
   );
 }
