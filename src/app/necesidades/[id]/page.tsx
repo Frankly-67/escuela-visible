@@ -4,12 +4,13 @@ import { notFound } from "next/navigation";
 
 import { DemoBadge } from "@/components/common/demo-badge";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
+import { ConfirmationHighlight } from "@/components/needs/confirmation-highlight";
 import { NeedProgressBars } from "@/components/needs/need-progress";
 import { NeedStatusBadge } from "@/components/needs/need-status-badge";
-import { getNeed } from "@/lib/data/public";
-import { CATEGORY_LABEL, formatQuantity, NEED_KIND_LABEL, PRIORITY_LABEL } from "@/lib/domain/labels";
-
-const dateFormat = new Intl.DateTimeFormat("es-CO", { dateStyle: "long", timeZone: "America/Bogota" });
+import { NeedTimeline } from "@/components/needs/need-timeline";
+import { getNeed, listNeedCommitments, listNeedEvents } from "@/lib/data/public";
+import { CATEGORY_LABEL, formatDate, formatQuantity, NEED_KIND_LABEL, PRIORITY_LABEL } from "@/lib/domain/labels";
+import { buildTimeline, summarizeConfirmations, summarizeRegistry } from "@/lib/domain/timeline";
 
 export async function generateMetadata(props: PageProps<"/necesidades/[id]">): Promise<Metadata> {
   const { id } = await props.params;
@@ -25,6 +26,11 @@ export default async function NeedPage(props: PageProps<"/necesidades/[id]">) {
   if (!result) notFound();
   const { need, school } = result;
 
+  const [events, commitments] = await Promise.all([listNeedEvents(need.id), listNeedCommitments(need.id)]);
+  const steps = buildTimeline(events, commitments, need.goal_unit);
+  const confirmation = summarizeConfirmations(commitments);
+  const lastConfirmationStep = steps.filter((s) => s.eventType === "SCHOOL_CONFIRMED").at(-1) ?? null;
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-10 sm:px-6">
       <Breadcrumbs
@@ -36,7 +42,7 @@ export default async function NeedPage(props: PageProps<"/necesidades/[id]">) {
       />
 
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <article className="flex flex-col gap-6">
+        <article className="flex min-w-0 flex-col gap-8">
           <header className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-2">
               <NeedStatusBadge status={need.status} />
@@ -51,6 +57,15 @@ export default async function NeedPage(props: PageProps<"/necesidades/[id]">) {
             </p>
           </header>
 
+          {confirmation && (
+            <ConfirmationHighlight
+              total={confirmation.total}
+              unit={need.goal_unit}
+              confirmedAt={confirmation.lastConfirmedAt}
+              verificationEventId={lastConfirmationStep?.eventId ?? null}
+            />
+          )}
+
           {need.description && <p className="max-w-3xl text-lg leading-relaxed">{need.description}</p>}
 
           <dl className="grid gap-4 border-t pt-6 text-sm sm:grid-cols-2">
@@ -58,9 +73,21 @@ export default async function NeedPage(props: PageProps<"/necesidades/[id]">) {
             <Detail label="Categoría" value={CATEGORY_LABEL[need.category]} />
             <Detail label="Prioridad" value={PRIORITY_LABEL[need.priority].replace("Prioridad ", "")} />
             <Detail label="Meta" value={formatQuantity(need.goal_quantity, need.goal_unit)} />
-            {need.event_date && <Detail label="Fecha" value={dateFormat.format(new Date(`${need.event_date}T12:00:00`))} />}
-            <Detail label="Creada el" value={dateFormat.format(new Date(need.created_at))} />
+            {need.event_date && <Detail label="Fecha" value={formatDate(`${need.event_date}T12:00:00-05:00`)} />}
+            <Detail label="Creada el" value={formatDate(need.created_at)} />
           </dl>
+
+          <section aria-labelledby="historial" className="flex flex-col gap-5 border-t pt-6">
+            <div className="flex flex-col gap-1">
+              <h2 id="historial" className="text-2xl font-semibold tracking-tight">
+                Historial
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Cada paso, en orden, con quién lo realizó y su número de registro en Hedera.
+              </p>
+            </div>
+            <NeedTimeline steps={steps} />
+          </section>
         </article>
 
         <aside className="flex flex-col gap-6">
@@ -69,19 +96,14 @@ export default async function NeedPage(props: PageProps<"/necesidades/[id]">) {
               Progreso
             </h2>
             <NeedProgressBars progress={need.progress} unit={need.goal_unit} />
-            <p className="text-xs text-muted-foreground">
-              Solo lo confirmado por la escuela cuenta como recibido.
-            </p>
+            <p className="text-xs text-muted-foreground">Solo lo confirmado por la escuela cuenta como recibido.</p>
           </section>
 
           <section aria-labelledby="registro" className="flex flex-col gap-2 rounded-xl bg-secondary/50 p-5 text-sm">
             <h2 id="registro" className="text-base font-semibold">
-              Registro de la ayuda
+              Registro en Hedera
             </h2>
-            <p className="text-muted-foreground">
-              Cada paso de esta necesidad queda en un historial. Las confirmaciones pueden registrarse en Hedera para
-              permitir una verificación independiente del registro.
-            </p>
+            <p className="text-muted-foreground">{summarizeRegistry(steps)}</p>
           </section>
         </aside>
       </div>

@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { computeProgress, type NeedProgress } from "@/lib/domain/progress";
+import type { TimelineCommitmentInput, TimelineEventInput } from "@/lib/domain/timeline";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database";
 
@@ -102,3 +103,62 @@ export const getNeed = cache(async (id: string): Promise<{ need: PublicNeed; sch
   const [need] = await withProgress([data]);
   return { need, school };
 });
+
+/*
+ * Historia pública de una necesidad. Columnas EXPLÍCITAS y seguras:
+ * sin payload, submission_error, attempts ni ids de personas; sin notas.
+ */
+const EVENT_FIELDS = "id, event_type, commitment_id, actor_role, sequence_number, created_at, submission_status";
+const COMMITMENT_FIELDS = "id, quantity, status, confirmed_at";
+
+export const listNeedEvents = cache(async (needId: string): Promise<TimelineEventInput[]> => {
+  if (!UUID.test(needId)) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("hedera_events")
+    .select(EVENT_FIELDS)
+    .eq("need_id", needId)
+    .order("created_at");
+  if (error) throw new Error(`No se pudo leer la historia: ${error.message}`);
+  return data.map((e) => ({
+    id: e.id,
+    eventType: e.event_type,
+    commitmentId: e.commitment_id,
+    actorRole: e.actor_role,
+    sequenceNumber: e.sequence_number,
+    createdAt: e.created_at,
+    submissionStatus: e.submission_status,
+  }));
+});
+
+export const listNeedCommitments = cache(async (needId: string): Promise<TimelineCommitmentInput[]> => {
+  if (!UUID.test(needId)) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("commitments")
+    .select(COMMITMENT_FIELDS)
+    .eq("need_id", needId)
+    .neq("status", "cancelled");
+  if (error) throw new Error(`No se pudieron leer los apoyos: ${error.message}`);
+  return data.map((c) => ({ id: c.id, quantity: c.quantity, status: c.status, confirmedAt: c.confirmed_at }));
+});
+
+/**
+ * Caso DEMO verificable para la portada: la necesidad pública de una escuela
+ * DEMO con la confirmación de escuela más reciente. Se busca en los datos (no
+ * se fija un id en el código); si no hay ninguna, devuelve null.
+ */
+export async function findDemoVerifiedCase(): Promise<{ needId: string; schoolName: string } | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("impact_feed")
+    .select("need_id, school_name")
+    .eq("event_type", "SCHOOL_CONFIRMED")
+    .eq("submission_status", "submitted")
+    .eq("school_is_demo", true)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(`No se pudo leer la actividad: ${error.message}`);
+  return data?.need_id && data.school_name ? { needId: data.need_id, schoolName: data.school_name } : null;
+}

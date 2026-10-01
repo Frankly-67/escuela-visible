@@ -3,7 +3,18 @@ import { describe, it } from "node:test";
 
 import { Constants } from "@/types/database";
 
-import { CATEGORY_LABEL, formatQuantity, NEED_KIND_LABEL, NEED_STATUS_LABEL, PRIORITY_LABEL } from "./labels";
+import {
+  CATEGORY_LABEL,
+  EVENT_LABEL,
+  formatConfirmedProgress,
+  formatDate,
+  formatDateTime,
+  formatQuantity,
+  NEED_KIND_LABEL,
+  NEED_STATUS_LABEL,
+  PRIORITY_LABEL,
+  ROLE_LABEL,
+} from "./labels";
 import { computeProgress } from "./progress";
 
 describe("etiquetas de interfaz", () => {
@@ -13,6 +24,26 @@ describe("etiquetas de interfaz", () => {
     assert.deepEqual(Object.keys(PRIORITY_LABEL).sort(), [...E.need_priority].sort());
     assert.deepEqual(Object.keys(NEED_STATUS_LABEL).sort(), [...E.need_status].sort());
     assert.deepEqual(Object.keys(NEED_KIND_LABEL).sort(), [...E.need_kind].sort());
+  });
+
+  it("eventos y roles cubren exactamente los valores de la base de datos", () => {
+    const E = Constants.public.Enums;
+    assert.deepEqual(Object.keys(EVENT_LABEL).sort(), [...E.hedera_event_type].sort());
+    assert.deepEqual(Object.keys(ROLE_LABEL).sort(), [...E.user_role].sort());
+  });
+
+  it("los roles son genéricos, sin nombres de personas", () => {
+    assert.deepEqual(ROLE_LABEL, { school_rep: "La escuela", admin: "Escuela Visible", supporter: "Un aliado" });
+  });
+
+  it("texto exacto del progreso confirmado", () => {
+    assert.equal(formatConfirmedProgress(5, 20, "kits", 25), "5 de 20 kits confirmados por la escuela · 25 %");
+  });
+
+  it("fechas en hora de Colombia (UTC-5)", () => {
+    // 02:31 UTC del 1 de octubre = 21:31 del 30 de septiembre en Bogotá.
+    assert.equal(formatDate("2026-10-01T02:31:26.133Z"), "30 de septiembre de 2026");
+    assert.match(formatDateTime("2026-10-01T02:31:26.133Z"), /^30 de septiembre de 2026 a las 9:31/);
   });
 
   it("formatea cantidades en español de Colombia", () => {

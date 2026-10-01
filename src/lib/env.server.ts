@@ -25,6 +25,18 @@ const hederaSchema = hederaOperatorSchema.extend({
   HEDERA_TOPIC_ID: z.string().regex(/^\d+\.\d+\.\d+$/, "HEDERA_TOPIC_ID inválido"),
 });
 
+// Solo datos públicos para verificar (sin clave privada): lo que necesita la
+// página /verify. Así la verificación no exige desplegar HEDERA_OPERATOR_KEY.
+const hederaPublicSchema = hederaOperatorSchema
+  .pick({ HEDERA_NETWORK: true, HEDERA_OPERATOR_ID: true, HEDERA_MIRROR_NODE_URL: true })
+  .extend({ HEDERA_TOPIC_ID: z.string().regex(/^\d+\.\d+\.\d+$/, "HEDERA_TOPIC_ID inválido") });
+
+export type HederaPublicConfig = z.infer<typeof hederaPublicSchema>;
+
+export function getHederaPublicConfig(): HederaPublicConfig {
+  return hederaPublicSchema.parse(process.env);
+}
+
 export type HederaOperatorEnv = z.infer<typeof hederaOperatorSchema>;
 export type HederaEnv = z.infer<typeof hederaSchema>;
 

@@ -1,6 +1,9 @@
+import Link from "next/link";
+
+import { NeedCard } from "@/components/needs/need-card";
 import { SchoolsMap, type MapSchool } from "@/components/schools/schools-map";
 import { Button } from "@/components/ui/button";
-import { listSchools } from "@/lib/data/public";
+import { findDemoVerifiedCase, getNeed, listSchools } from "@/lib/data/public";
 
 const STEPS = [
   {
@@ -26,7 +29,8 @@ const STEPS = [
 ];
 
 export default async function Home() {
-  const schools = await listSchools();
+  const [schools, demoCase] = await Promise.all([listSchools(), findDemoVerifiedCase()]);
+  const caseNeed = demoCase ? await getNeed(demoCase.needId) : null;
   const mapSchools: MapSchool[] = schools.map((s) => ({
     slug: s.slug,
     name: s.name,
@@ -52,7 +56,12 @@ export default async function Home() {
             <Button asChild size="lg" className="h-11 px-5 text-base">
               <a href="#escuelas">Explorar escuelas</a>
             </Button>
-            <Button asChild size="lg" variant="outline" className="h-11 px-5 text-base">
+            {caseNeed && (
+              <Button asChild size="lg" variant="outline" className="h-11 px-5 text-base">
+                <Link href={`/necesidades/${caseNeed.need.id}`}>Ver un caso con trazabilidad</Link>
+              </Button>
+            )}
+            <Button asChild size="lg" variant="ghost" className="h-11 px-5 text-base">
               <a href="#como-funciona">Cómo funciona</a>
             </Button>
           </div>
@@ -77,6 +86,28 @@ export default async function Home() {
           )}
         </div>
       </section>
+
+      {caseNeed && (
+        <section id="caso" aria-labelledby="caso-titulo" className="scroll-mt-20 border-b bg-secondary/30">
+          <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:items-center">
+            <div className="flex max-w-xl flex-col gap-3">
+              <h2 id="caso-titulo" className="text-3xl font-semibold tracking-tight">
+                Un caso de principio a fin
+              </h2>
+              <p className="text-muted-foreground">
+                Sigue una necesidad DEMO de {caseNeed.school.name}: desde que la escuela la publicó hasta que confirmó la
+                recepción del apoyo. Cada paso se puede comprobar contra el registro publicado en Hedera.
+              </p>
+              <div>
+                <Button asChild size="lg" className="h-11 px-5 text-base">
+                  <Link href={`/necesidades/${caseNeed.need.id}`}>Ver un caso con trazabilidad</Link>
+                </Button>
+              </div>
+            </div>
+            <NeedCard need={caseNeed.need} />
+          </div>
+        </section>
+      )}
 
       <section id="como-funciona" className="scroll-mt-20">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-14 sm:px-6">
