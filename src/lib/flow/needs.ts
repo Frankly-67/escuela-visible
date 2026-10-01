@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { authorizeCreateNeed, authorizeValidateNeed, type Actor } from "@/lib/domain/permissions";
+import { authorizeCreateNeed, authorizeRejectNeed, authorizeValidateNeed, type Actor } from "@/lib/domain/permissions";
 import { buildEvent } from "@/lib/events/build";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database";
@@ -12,6 +12,7 @@ import { createNeedInputSchema, type CreateNeedInput } from "./schemas";
 
 type CreateNeedArgs = Database["public"]["Functions"]["flow_create_need"]["Args"];
 type ValidateNeedArgs = Database["public"]["Functions"]["flow_validate_need"]["Args"];
+type RejectNeedArgs = Database["public"]["Functions"]["flow_reject_need"]["Args"];
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -119,4 +120,38 @@ export async function validateNeed(actor: Actor, needId: string) {
   if (error) throw flowErrorFromRpc(error);
 
   return { needId: need.id, eventId: event.payload.eventId, event };
+}
+
+/**
+ * Rechazo: la administración no aprueba una necesidad pendiente
+ * (pending_validation → cancelled).
+ *
+ *  1. lee el estado y la escuela de la necesidad;
+ *  2. comprueba permiso y transición (authorizeRejectNeed);
+ *  3. llama a flow_reject_need, que en UNA transacción bloquea la fila y
+ *     vuelve a validar actor y estado.
+ *
+ * No genera evento ni publica en Hedera (decisión de Phase 2).
+ */
+export async function rejectNeed(actor: Actor, needId: string) {
+  if (!UUID.test(needId)) throw new FlowError("INVALID_INPUT", "Identificador de necesidad inválido.");
+
+  const db = createAdminClient();
+  const { data: need, error: readError } = await db
+    .from("needs")
+    .select("id, school_id, status")
+    .eq("id", needId)
+    .maybeSingle();
+  if (readError) throw new Error(`No se pudo leer la necesidad: ${readError.message}`);
+  if (!need) throw new FlowError("NOT_FOUND", "La necesidad no existe.");
+
+  const decision = authorizeRejectNeed(actor, { schoolId: need.school_id, status: need.status });
+  if (!decision.ok) throw new FlowError(decision.code, decision.message);
+
+  const args = { p_actor_id: actor.id, p_need_id: need.id } satisfies RejectNeedArgs;
+
+  const { error } = await db.rpc("flow_reject_need", args);
+  if (error) throw flowErrorFromRpc(error);
+
+  return { needId: need.id };
 }

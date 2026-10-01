@@ -93,9 +93,13 @@ export default async function SchoolPanelPage() {
           <h2 id="necesidades" className="text-2xl font-semibold tracking-tight">
             Necesidades de la escuela
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Incluye las pendientes de validación y las no aprobadas. Crear necesidades se habilitará en una fase posterior.
-          </p>
+          <p className="text-sm text-muted-foreground">Incluye las pendientes de validación y las no aprobadas.</p>
+          <Link
+            href="/panel/escuela/necesidades/nueva"
+            className="mt-2 self-start rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/80"
+          >
+            Registrar necesidad
+          </Link>
         </div>
         {needs.length === 0 ? (
           <p className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">

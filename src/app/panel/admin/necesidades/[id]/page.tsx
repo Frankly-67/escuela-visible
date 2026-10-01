@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { DemoBadge } from "@/components/common/demo-badge";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { NeedStatusBadge } from "@/components/needs/need-status-badge";
+import { ReviewActions } from "@/components/panel/review-actions";
 import { requireActor } from "@/lib/auth/session";
 import { getAdminNeedReview } from "@/lib/data/panel";
 import { CATEGORY_LABEL, formatDate, formatQuantity, NEED_KIND_LABEL, PRIORITY_LABEL } from "@/lib/domain/labels";
@@ -15,7 +16,7 @@ const PRIVACY_CHECKLIST = [
   "No incluye datos médicos.",
 ];
 
-/** Revisión administrativa de una necesidad. Solo lectura: sin validar ni rechazar. */
+/** Revisión administrativa de una necesidad: datos, checklist de privacidad y decisión (si está pendiente). */
 export default async function AdminNeedReviewPage(props: PageProps<"/panel/admin/necesidades/[id]">) {
   await requireActor(["admin"]);
   const { id } = await props.params;
@@ -91,9 +92,7 @@ export default async function AdminNeedReviewPage(props: PageProps<"/panel/admin
               ))}
             </ul>
           </section>
-          <p className="rounded-xl bg-secondary/50 p-5 text-sm text-muted-foreground">
-            La validación se habilitará en una fase posterior.
-          </p>
+          <ReviewActions needId={need.id} status={need.status} />
         </aside>
       </div>
     </div>

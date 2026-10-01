@@ -28,8 +28,8 @@ export default async function AdminPanelPage(props: PageProps<"/panel/admin">) {
       <header className="flex flex-col gap-2">
         <h1 className="text-3xl font-semibold tracking-tight">Panel de administración</h1>
         <p className="max-w-2xl text-muted-foreground">
-          Necesidades por estado, publicación de registros y actividad reciente. La validación se habilitará en una fase
-          posterior.
+          Necesidades por estado, publicación de registros y actividad reciente. Para validar o no aprobar una necesidad
+          pendiente, entra en «Revisar».
         </p>
       </header>
 
