@@ -1,8 +1,21 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { signOut } from "@/app/ingresar/actions";
+import { getSessionActor } from "@/lib/auth/session";
 
-export function SiteHeader() {
+async function currentActorSafe() {
+  // Un fallo al leer la sesión no debe romper las páginas públicas.
+  try {
+    return await getSessionActor();
+  } catch {
+    return null;
+  }
+}
+
+export async function SiteHeader() {
+  const actor = await currentActorSafe();
+
   return (
     <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/75">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
@@ -21,14 +34,25 @@ export function SiteHeader() {
           <Button asChild variant="ghost" size="lg" className="hidden sm:inline-flex">
             <Link href="/">Inicio</Link>
           </Button>
-          <Button asChild variant="ghost" size="lg">
+          <Button asChild variant="ghost" size="lg" className={actor ? "hidden sm:inline-flex" : undefined}>
             <Link href="/#escuelas">Escuelas</Link>
           </Button>
-          {/* El inicio de sesión llega en la siguiente fase: no enlaza a ninguna parte. */}
-          <Button variant="outline" size="lg" disabled aria-disabled title="Disponible próximamente">
-            Ingresar
-            <span className="sr-only"> (disponible próximamente)</span>
-          </Button>
+          {actor ? (
+            <>
+              <Button asChild variant="outline" size="lg">
+                <Link href="/panel">Panel</Link>
+              </Button>
+              <form action={signOut}>
+                <Button type="submit" variant="ghost" size="lg">
+                  Salir
+                </Button>
+              </form>
+            </>
+          ) : (
+            <Button asChild variant="outline" size="lg">
+              <Link href="/ingresar">Ingresar</Link>
+            </Button>
+          )}
         </nav>
       </div>
     </header>
