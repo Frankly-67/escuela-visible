@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { DemoBadge } from "@/components/common/demo-badge";
+import { ConfirmReceiptButton } from "@/components/panel/confirm-receipt-button";
 import { PanelNeedCard } from "@/components/panel/panel-need-card";
 import { SummaryCards } from "@/components/panel/summary-cards";
 import { requireActor } from "@/lib/auth/session";
@@ -64,7 +65,7 @@ export default async function SchoolPanelPage() {
             Entregas reportadas por confirmar
           </h2>
           <p className="text-sm text-muted-foreground">
-            Solo lo confirmado por la escuela cuenta como recibido. La confirmación se habilitará en una fase posterior.
+            Solo lo confirmado por la escuela cuenta como recibido. Confirma únicamente lo que la escuela ya recibió.
           </p>
         </div>
         {pendingDeliveries.length === 0 ? (
@@ -82,6 +83,9 @@ export default async function SchoolPanelPage() {
                 {d.deliveryReportedAt && (
                   <p className="text-xs text-muted-foreground">Reportada el {formatDate(d.deliveryReportedAt)}</p>
                 )}
+                <div className="mt-2">
+                  <ConfirmReceiptButton commitmentId={d.commitmentId} quantityText={formatQuantity(d.quantity, d.goalUnit)} />
+                </div>
               </li>
             ))}
           </ul>

@@ -97,6 +97,14 @@ export default async function NeedPage(props: PageProps<"/necesidades/[id]">) {
             </h2>
             <NeedProgressBars progress={need.progress} unit={need.goal_unit} />
             <p className="text-xs text-muted-foreground">Solo lo confirmado por la escuela cuenta como recibido.</p>
+            {need.status === "published" && (
+              <Link
+                href={`/panel/aliado/apoyar/${need.id}`}
+                className="self-start rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/80"
+              >
+                Quiero apoyar
+              </Link>
+            )}
           </section>
 
           <section aria-labelledby="registro" className="flex flex-col gap-2 rounded-xl bg-secondary/50 p-5 text-sm">

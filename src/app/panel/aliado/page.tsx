@@ -17,7 +17,8 @@ export default async function SupporterPanelPage() {
       <header className="flex flex-col gap-2">
         <h1 className="text-3xl font-semibold tracking-tight">Panel del aliado</h1>
         <p className="max-w-2xl text-muted-foreground">
-          Tus compromisos con las escuelas y cada paso registrado. Reportar entregas se habilitará en una fase posterior.
+          Tus compromisos con las escuelas y cada paso registrado. Para apoyar una necesidad publicada, entra en su página y
+          elige «Quiero apoyar». Cuando entregues, repórtalo aquí; la escuela confirmará la recepción.
         </p>
       </header>
 

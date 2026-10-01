@@ -5,15 +5,21 @@ import { FlowError } from "@/lib/flow/errors";
 import { createNeedInputSchema } from "@/lib/flow/schemas";
 
 import {
+  commitmentCreatedState,
+  deliveryReportedState,
   flowErrorMessage,
   GENERIC_ERROR,
   needCreatedState,
   needRejectedState,
   needValidatedState,
+  parseCommitmentForm,
   parseNeedForm,
   parseQuantity,
   publicationFromOutcome,
+  readIdField,
+  receiptConfirmedState,
 } from "./flow-result";
+import { createCommitmentInputSchema } from "@/lib/flow/schemas";
 
 const OTHER_SCHOOL = "00000000-0000-4000-a000-00000000000b";
 const EVENT = "e0000000-0000-4000-8000-000000000001";
@@ -168,5 +174,77 @@ describe("Mensajes de resultado", () => {
 
   it("enlazan el evento solo cuando existe", () => {
     assert.deepEqual(all.map((s) => (s.status === "success" ? s.eventId : "x")), [EVENT, EVENT, EVENT, EVENT, null]);
+  });
+});
+
+// --- B4: acciones de apoyo -------------------------------------------------------
+
+const NEED = "bbbbbbbb-0000-4000-8000-000000000001";
+const COMMITMENT = "cccccccc-0000-4000-8000-000000000001";
+
+describe("readIdField", () => {
+  it("acepta un UUID en minúsculas y rechaza lo demás", () => {
+    assert.equal(readIdField(form({ commitmentId: COMMITMENT }), "commitmentId"), COMMITMENT);
+    for (const v of ["", "x", COMMITMENT.toUpperCase(), `${COMMITMENT} `.repeat(2), "'; drop table commitments; --"]) {
+      assert.equal(readIdField(form({ commitmentId: v }), "commitmentId"), null, v);
+    }
+    assert.equal(readIdField(form({}), "commitmentId"), null);
+  });
+});
+
+describe("parseCommitmentForm", () => {
+  it("solo necesidad y cantidad; nota siempre null; identidad ignorada", () => {
+    const r = parseCommitmentForm(form({ needId: NEED, quantity: "2,5", supporterId: OTHER_SCHOOL, userId: OTHER_SCHOOL, role: "admin", note: "nota privada" }));
+    assert.ok(r.ok);
+    assert.deepEqual(r.input, { needId: NEED, quantity: 2.5, note: null });
+    assert.ok(createCommitmentInputSchema.safeParse(r.input).success);
+  });
+  it("necesidad o cantidad inválidas → mensaje y conserva la cantidad escrita", () => {
+    const bad = parseCommitmentForm(form({ needId: "x", quantity: "5" }));
+    assert.ok(!bad.ok && /necesidad/.test(bad.message) && bad.quantity === "5");
+    for (const q of ["", "cinco", "-1", "1e2"]) {
+      const r = parseCommitmentForm(form({ needId: NEED, quantity: q }));
+      assert.ok(!r.ok && /cantidad/.test(r.message) && r.quantity === q, q);
+    }
+  });
+  it("cantidad 0 o con 3 decimales pasa el formato y la rechaza el schema existente", () => {
+    for (const q of ["0", "1,234"]) {
+      const r = parseCommitmentForm(form({ needId: NEED, quantity: q }));
+      assert.ok(r.ok);
+      assert.equal(createCommitmentInputSchema.safeParse(r.input).success, false, q);
+    }
+  });
+});
+
+describe("Mensajes B4", () => {
+  it("compromiso: registrado / pendiente", () => {
+    const pub = commitmentCreatedState(EVENT, "published");
+    const pen = commitmentCreatedState(EVENT, "pending");
+    assert.ok(pub.status === "success" && pub.message.startsWith("Compromiso registrado.") && pub.eventId === EVENT);
+    assert.ok(pen.status === "success" && pen.message === "El compromiso quedó registrado. La publicación en Hedera está pendiente.");
+  });
+  it("entrega reportada: la escuela debe confirmar; no es recepción", () => {
+    for (const p of ["published", "pending"] as const) {
+      const s = deliveryReportedState(EVENT, p);
+      assert.ok(s.status === "success" && s.message.startsWith("Entrega reportada. La escuela debe confirmar la recepción."));
+      assert.doesNotMatch(s.message, /recibid|confirmada/);
+    }
+  });
+  it("recepción confirmada: indica si la necesidad se completó", () => {
+    const done = receiptConfirmedState(EVENT, "published", true);
+    const open = receiptConfirmedState(EVENT, "pending", false);
+    assert.ok(done.status === "success" && done.needCompleted === true && done.message.includes("Recepción confirmada por la escuela.") && done.message.includes("La necesidad alcanzó su meta y quedó completada."));
+    assert.ok(open.status === "success" && open.needCompleted === false && !open.message.includes("completada") && /pendiente/.test(open.message));
+  });
+  it("nunca atribuyen a Hedera la entrega ni dicen «verificado»", () => {
+    const all = [
+      commitmentCreatedState(EVENT, "published"), commitmentCreatedState(EVENT, "pending"),
+      deliveryReportedState(EVENT, "published"), deliveryReportedState(EVENT, "pending"),
+      receiptConfirmedState(EVENT, "published", true), receiptConfirmedState(EVENT, "pending", false),
+    ];
+    for (const s of all) {
+      assert.ok(s.status === "success");
+      assert.doesNotMatch(s.message, /verificad|Hedera (confirm|demuestr|verific|prueb)|garantiza|ayuda ocurrió/i);
+    }
   });
 });

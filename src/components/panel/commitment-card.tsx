@@ -7,6 +7,7 @@ import type { SupporterCommitmentDTO } from "@/lib/domain/panel";
 import { computeProgress } from "@/lib/domain/progress";
 
 import { EventLinks } from "./event-links";
+import { ReportDeliveryButton } from "./report-delivery-button";
 
 const STATUS_STYLE: Record<keyof typeof COMMITMENT_STATUS_LABEL, string> = {
   committed: "bg-secondary text-secondary-foreground",
@@ -14,7 +15,7 @@ const STATUS_STYLE: Record<keyof typeof COMMITMENT_STATUS_LABEL, string> = {
   confirmed: "bg-primary text-primary-foreground",
 };
 
-/** Un compromiso del aliado en sesión (DTO de B1). Solo lectura. */
+/** Un compromiso del aliado en sesión (DTO de B1). Única acción: reportar la entrega si está `committed`. */
 export function CommitmentCard({ commitment }: { commitment: SupporterCommitmentDTO }) {
   const { need, school, progress } = commitment;
   const status = commitment.status === "cancelled" ? null : commitment.status;
@@ -71,6 +72,10 @@ export function CommitmentCard({ commitment }: { commitment: SupporterCommitment
 
       {need && progress && (
         <NeedProgressBars progress={computeProgress(progress.goal, progress.committed, progress.confirmed)} unit={unit} compact />
+      )}
+
+      {commitment.status === "committed" && (
+        <ReportDeliveryButton commitmentId={commitment.id} quantityText={formatQuantity(commitment.quantity, unit)} />
       )}
 
       <section className="flex flex-col gap-2 border-t pt-4">

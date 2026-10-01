@@ -19,14 +19,25 @@ const E = Constants.public.Enums;
 /** Estado que devuelven las acciones a la interfaz (useActionState). */
 export type NeedActionState =
   | { status: "idle" }
-  | { status: "error"; message: string; values?: NeedFormValues }
+  | {
+      status: "error";
+      message: string;
+      values?: NeedFormValues;
+      /** Cantidad escrita en el formulario de compromiso (para no perderla). */
+      quantity?: string;
+    }
   | {
       status: "success";
       message: string;
       /** Evento a enlazar en /verify (null si el paso no genera evento). */
       eventId: string | null;
       publication: Publication;
+      /** Solo en la confirmación de recepción: la necesidad alcanzó su meta. */
+      needCompleted?: boolean;
     };
+
+/** Estado de las acciones de apoyo (B4). Mismo modelo que las de necesidades. */
+export type FlowActionState = NeedActionState;
 
 /** Estado de publicación en Hedera, tal como se guardó (no es una verificación). */
 export type Publication = "published" | "pending" | "none";
@@ -152,5 +163,76 @@ export function needRejectedState(): NeedActionState {
     message: "La necesidad quedó como no aprobada. Este paso no se publica en Hedera.",
     eventId: null,
     publication: "none",
+  };
+}
+
+// --- Acciones de apoyo (B4) ------------------------------------------------------
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/** Id de referencia enviado por el formulario (necesidad o compromiso), o null si no es un UUID. */
+export function readIdField(form: FormLike, name: string): string | null {
+  const value = text(form, name).trim();
+  return UUID.test(value) ? value : null;
+}
+
+export type ParsedCommitmentForm =
+  | { ok: true; input: { needId: string; quantity: number; note: null } }
+  | { ok: false; message: string; quantity: string };
+
+/**
+ * Formulario de compromiso → input de createCommitment. Solo la necesidad (id)
+ * y la cantidad; sin notas (note = null) y sin identidad: el aliado sale de la
+ * sesión. Límites y disponible los comprueban el dominio y la RPC.
+ */
+export function parseCommitmentForm(form: FormLike): ParsedCommitmentForm {
+  const raw = text(form, "quantity");
+  const needId = readIdField(form, "needId");
+  if (!needId) return { ok: false, message: "Identificador de necesidad inválido.", quantity: raw };
+  const quantity = parseQuantity(raw);
+  if (quantity === null) return { ok: false, message: "Escribe la cantidad como un número (por ejemplo, 5 o 2,5).", quantity: raw };
+  return { ok: true, input: { needId, quantity, note: null } };
+}
+
+export function commitmentCreatedState(eventId: string, publication: Publication): NeedActionState {
+  return {
+    status: "success",
+    message:
+      publication === "published"
+        ? "Compromiso registrado. El registro de este paso ya está publicado en Hedera."
+        : "El compromiso quedó registrado. La publicación en Hedera está pendiente.",
+    eventId,
+    publication,
+  };
+}
+
+export function deliveryReportedState(eventId: string, publication: Publication): NeedActionState {
+  return {
+    status: "success",
+    message: `Entrega reportada. La escuela debe confirmar la recepción. ${
+      publication === "published"
+        ? "El registro de este paso ya está publicado en Hedera."
+        : "La publicación del registro en Hedera está pendiente."
+    }`,
+    eventId,
+    publication,
+  };
+}
+
+export function receiptConfirmedState(eventId: string, publication: Publication, needCompleted: boolean): NeedActionState {
+  return {
+    status: "success",
+    message: [
+      "Recepción confirmada por la escuela.",
+      needCompleted ? "La necesidad alcanzó su meta y quedó completada." : null,
+      publication === "published"
+        ? "El registro de este paso ya está publicado en Hedera."
+        : "La publicación del registro en Hedera está pendiente.",
+    ]
+      .filter(Boolean)
+      .join(" "),
+    eventId,
+    publication,
+    needCompleted,
   };
 }
