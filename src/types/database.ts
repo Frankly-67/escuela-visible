@@ -14,6 +14,76 @@ export type Database = {
   }
   public: {
     Tables: {
+      board_posts: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          event_date: string | null
+          id: string
+          kind: Database["public"]["Enums"]["board_post_kind"]
+          published_at: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          school_id: string
+          status: Database["public"]["Enums"]["board_post_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          event_date?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["board_post_kind"]
+          published_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id: string
+          status?: Database["public"]["Enums"]["board_post_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          event_date?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["board_post_kind"]
+          published_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id?: string
+          status?: Database["public"]["Enums"]["board_post_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_posts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_posts_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_posts_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commitments: {
         Row: {
           confirmed_at: string | null
@@ -424,6 +494,27 @@ export type Database = {
       }
     }
     Functions: {
+      board_create_post: {
+        Args: {
+          p_actor_id: string
+          p_body: string
+          p_event_date: string
+          p_kind: Database["public"]["Enums"]["board_post_kind"]
+          p_post_id: string
+          p_school_id: string
+          p_title: string
+        }
+        Returns: Json
+      }
+      board_publish_post: {
+        Args: { p_actor_id: string; p_post_id: string }
+        Returns: Json
+      }
+      board_reject_post: {
+        Args: { p_actor_id: string; p_post_id: string }
+        Returns: Json
+      }
+      board_text_has_contact: { Args: { p_text: string }; Returns: boolean }
       current_user_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
@@ -536,6 +627,15 @@ export type Database = {
       }
     }
     Enums: {
+      board_post_kind:
+        | "bazar"
+        | "sancocho"
+        | "actividad"
+        | "mejora_infraestructura"
+        | "materiales_escolares"
+        | "campana"
+        | "proyecto_terminado"
+      board_post_status: "pending_review" | "published" | "rejected"
       commitment_status:
         | "committed"
         | "delivery_reported"
@@ -691,6 +791,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      board_post_kind: [
+        "bazar",
+        "sancocho",
+        "actividad",
+        "mejora_infraestructura",
+        "materiales_escolares",
+        "campana",
+        "proyecto_terminado",
+      ],
+      board_post_status: ["pending_review", "published", "rejected"],
       commitment_status: [
         "committed",
         "delivery_reported",

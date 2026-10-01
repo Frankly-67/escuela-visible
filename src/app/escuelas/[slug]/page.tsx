@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { PostCard } from "@/components/board/post-card";
 import { DocumentedCaseHero, DocumentedCaseSections } from "@/components/cases/documented-case";
 import { DemoBadge } from "@/components/common/demo-badge";
 import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { NeedCard } from "@/components/needs/need-card";
 import { getDocumentedCase, type DocumentedCase } from "@/content/documented-cases";
+import { listSchoolPublishedPosts } from "@/lib/data/board";
 import { getSchoolBySlug, listNeedsBySchool, type PublicNeed, type PublicSchool } from "@/lib/data/public";
 
 /**
@@ -67,6 +70,7 @@ export default async function SchoolPage(props: PageProps<"/escuelas/[slug]">) {
       </header>
 
       <NeedsSection needs={needs} />
+      <SchoolPostsSection schoolId={school.id} />
     </div>
   );
 }
@@ -92,6 +96,7 @@ async function DocumentedCasePage({
       <DocumentedCaseHero documentedCase={documentedCase} />
       <DocumentedCaseSections documentedCase={documentedCase} />
       {needs.length > 0 && <NeedsSection needs={needs} />}
+      {school && <SchoolPostsSection schoolId={school.id} />}
     </div>
   );
 }
@@ -119,6 +124,33 @@ function NeedsSection({ needs }: { needs: PublicNeed[] }) {
           Esta escuela aún no tiene necesidades publicadas.
         </p>
       )}
+    </section>
+  );
+}
+
+/** Publicaciones aprobadas de la escuela en el tablón. Solo si tiene alguna. */
+async function SchoolPostsSection({ schoolId }: { schoolId: string }) {
+  const result = await listSchoolPublishedPosts(schoolId);
+  if (!result.available || result.posts.length === 0) return null;
+  return (
+    <section aria-labelledby="publicaciones" className="flex flex-col gap-5">
+      <div className="flex flex-col gap-1">
+        <h2 id="publicaciones" className="text-2xl font-semibold tracking-tight">
+          Publicaciones
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Publicaciones de la escuela en el{" "}
+          <Link href="/tablon" className="font-medium text-primary underline-offset-4 hover:underline">
+            tablón
+          </Link>
+          , revisadas por Escuela Visible.
+        </p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {result.posts.map((post) => (
+          <PostCard key={post.id} post={post} showSchool={false} />
+        ))}
+      </div>
     </section>
   );
 }

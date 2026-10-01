@@ -54,6 +54,7 @@ Todas están en `scripts/regression/`. Cada una imprime `✓`/`✗` por comproba
 | `pglite/column-privacy-b0.mts` | PGlite | B0: `anon`/`authenticated` no leen `supporter_id`, `confirmed_by`, notas, evidencia, `submission_error`, `attempts`; las consultas de la app siguen funcionando. |
 | `pglite/column-privacy-b01.mts` | PGlite | B0.1: `created_by` / `validated_by` protegidos; RLS intacta por rol. |
 | `pglite/panel-isolation-b1.mts` | PGlite | B1: consultas de los paneles por rol con dos escuelas y dos aliados (aislamiento entre escuelas y entre aliados). |
+| `pglite/board.mts` | PGlite | Tablón (migración 6): RPC `board_*` por rol y escuela; `pending_review → published / rejected` y nada más; sin edición después de enviar (incluso con la secret key); teléfonos y correos bloqueados (misma regla en SQL y en TypeScript); RLS por rol; `created_by` / `reviewed_by` ilegibles; sin INSERT/UPDATE/DELETE ni ejecución de `board_*` para `anon` / `authenticated`; sin eventos Hedera. |
 | `secret-scan.mjs` | estático | Valores reales de secretos (comparados, nunca impresos) y formatos de credenciales (`sb_secret_…`, JWT, PEM, DER de Hedera) en los archivos del repositorio. |
 | `bundle-scan.mjs` | estático | En `.next/static`: valores reales de secretos (decisivo) y señales de código de servidor (nombres de variables secretas, `createAdminClient`, `publishEvent`, RPC `flow_*`, SDK de Hedera, columnas privadas, emails DEMO). Los valores `NEXT_PUBLIC_*` son públicos por diseño y no se buscan. |
 
@@ -65,6 +66,7 @@ Todas están en `scripts/regression/`. Cada una imprime `✓`/`✗` por comproba
 | `data-layer.mts` | funciones reales de `src/lib/data/panel.ts` con sesiones DEMO | Firmas sin contexto de seguridad; redirecciones por rol; contenido y aislamiento de cada panel; filtros del admin; ninguna clave sensible, UUID de persona, `school_id` ni email en los DTO. |
 | `actions-needs.mts` | Server Actions reales de B3 | Crear / validar / no aprobar con las funciones de flow reales; la base y Hedera sustituidas por **dobles** (las RPC solo se registran, `publishEvent` no publica). Roles, `schoolId` del formulario ignorado, errores, publicación pendiente. |
 | `actions-support.mts` | Server Actions reales de B4 | Comprometer / reportar / confirmar con dobles: roles, dueño, otra escuela, `committed → confirmed` bloqueado, cantidades, carreras, errores, publicación pendiente. |
+| `actions-board.mts` | Server Actions reales del tablón | Enviar / aprobar / no aprobar con dobles (RPC registradas, no ejecutadas): sin sesión no se publica, escuela y autor desde la sesión, teléfonos y correos bloqueados antes de la RPC, roles, transiciones, ids inválidos, nunca `publishEvent`. |
 
 Estas pruebas **inician sesión** con las cuentas DEMO (crea sesiones en Supabase Auth, como un
 usuario normal) y **leen** datos reales. En `actions-*.mts` es normal ver trazas
@@ -79,6 +81,7 @@ doble simula un fallo de Hedera, y la prueba comprueba que la interfaz lo muestr
 | `http-panels.mjs` | Paneles B2: sin sesión, aislamiento escuela/escuela y aliado/aliado, roles cruzados, parámetros manipulados (`?schoolId=`, `?supporterId=`, `?userId=`, `?role=`), filtros válidos e inválidos, páginas de detalle, privacidad del HTML completo (incluido el payload RSC). |
 | `http-need-actions.mjs` | B3: formulario de la escuela (sin campos de identidad, aviso de privacidad), CSRF, sin sesión, rol incorrecto, datos inválidos; revisión admin sin botones en necesidades ya revisadas. |
 | `http-support-actions.mjs` | B4: «Quiero apoyar» solo en necesidades publicadas, página de compromiso (meta, comprometido, disponible), CSRF, sin sesión, rol incorrecto, cantidad inválida o mayor que lo disponible, botones solo en los estados correctos. |
+| `http-board.mjs` | Tablón: `/tablon` y su filtro (válido e inválido), enlace en la navegación, «Nueva publicación» por rol, formulario sin campos de identidad, CSRF, sin sesión, rol incorrecto, teléfono o correo rechazados (sin escrituras), revisión del admin por rol, privacidad del HTML. Funciona con la migración aplicada o sin aplicar. |
 
 Los envíos de formularios de estas pruebas **siempre se rechazan antes de escribir**: origen
 ajeno (CSRF), sin sesión, rol incorrecto, cantidad no numérica o mayor que lo disponible.

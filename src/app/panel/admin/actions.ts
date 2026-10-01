@@ -2,6 +2,7 @@
 
 import { refresh } from "next/cache";
 
+import { postPublishedState, postRejectedState, type BoardActionState } from "@/lib/actions/board-result";
 import {
   flowErrorMessage,
   needRejectedState,
@@ -10,6 +11,7 @@ import {
   type NeedActionState,
 } from "@/lib/actions/flow-result";
 import { requireActor } from "@/lib/auth/session";
+import { publishPost, rejectPost } from "@/lib/board/posts";
 import { rejectNeed, validateNeed } from "@/lib/flow/needs";
 import { publishEvent } from "@/lib/hedera/publish";
 
@@ -56,4 +58,38 @@ export async function rejectNeedAction(_prev: NeedActionState, formData: FormDat
 
   refresh();
   return needRejectedState();
+}
+
+/*
+ * Revisión de publicaciones del tablón. Mismo patrón: sesión de admin en cada
+ * acción; del formulario solo se toma el id; el estado se lee de la base. Sin
+ * eventos ni publicación en Hedera.
+ */
+const postIdFrom = (formData: FormData) => {
+  const value = formData.get("postId");
+  return typeof value === "string" ? value : "";
+};
+
+/** pending_review → published: desde ahora es pública en el tablón. */
+export async function publishPostAction(_prev: BoardActionState, formData: FormData): Promise<BoardActionState> {
+  const actor = await requireActor(["admin"]);
+  try {
+    await publishPost(actor, postIdFrom(formData));
+  } catch (error) {
+    return { status: "error", message: flowErrorMessage(error) };
+  }
+  refresh();
+  return postPublishedState();
+}
+
+/** pending_review → rejected: nunca se muestra en el tablón. */
+export async function rejectPostAction(_prev: BoardActionState, formData: FormData): Promise<BoardActionState> {
+  const actor = await requireActor(["admin"]);
+  try {
+    await rejectPost(actor, postIdFrom(formData));
+  } catch (error) {
+    return { status: "error", message: flowErrorMessage(error) };
+  }
+  refresh();
+  return postRejectedState();
 }

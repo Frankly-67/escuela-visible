@@ -53,6 +53,9 @@ const signals = {
   "RPC flow_create_commitment": "flow_create_commitment",
   "RPC flow_report_delivery": "flow_report_delivery",
   "RPC flow_confirm_receipt": "flow_confirm_receipt",
+  "RPC board_create_post": "board_create_post",
+  "RPC board_publish_post": "board_publish_post",
+  "RPC board_reject_post": "board_reject_post",
   "SDK @hiero-ledger": "hiero-ledger",
   "SDK @hashgraph": "@hashgraph/",
   TopicMessageSubmitTransaction: "TopicMessageSubmitTransaction",
@@ -61,6 +64,7 @@ const signals = {
   "columna delivery_note": "delivery_note",
   "columna delivery_evidence_path": "delivery_evidence_path",
   "columna submission_error": "submission_error",
+  "columna reviewed_by": "reviewed_by",
   "emails DEMO": "demo.escuelavisible.example",
 };
 

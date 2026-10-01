@@ -37,6 +37,9 @@ export async function SiteHeader() {
           <Button asChild variant="ghost" size="lg" className={actor ? "hidden sm:inline-flex" : undefined}>
             <Link href="/#escuelas">Escuelas</Link>
           </Button>
+          <Button asChild variant="ghost" size="lg">
+            <Link href="/tablon">Tablón</Link>
+          </Button>
           {actor ? (
             <>
               <Button asChild variant="outline" size="lg">

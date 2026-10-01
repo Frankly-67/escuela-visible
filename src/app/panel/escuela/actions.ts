@@ -1,5 +1,6 @@
 "use server";
 
+import { parseBoardPostForm, postCreatedState, type BoardActionState } from "@/lib/actions/board-result";
 import {
   flowErrorMessage,
   needCreatedState,
@@ -12,6 +13,7 @@ import {
   type NeedActionState,
 } from "@/lib/actions/flow-result";
 import { requireActor } from "@/lib/auth/session";
+import { createPost } from "@/lib/board/posts";
 import { confirmReceipt } from "@/lib/flow/commitments";
 import { createNeed } from "@/lib/flow/needs";
 import { publishEvent } from "@/lib/hedera/publish";
@@ -77,4 +79,26 @@ export async function confirmReceiptAction(_prev: FlowActionState, formData: For
     return null;
   });
   return receiptConfirmedState(result.eventId, publicationFromOutcome(outcome), result.needCompleted);
+}
+
+/**
+ * La escuela envía una publicación al tablón (queda pending_review).
+ *
+ * - Exige sesión de school_rep aquí mismo; la escuela es SIEMPRE
+ *   actor.schoolId (cualquier schoolId, role o userId del formulario se ignora).
+ * - createPost valida datos, privacidad (sin teléfonos ni correos) y permiso;
+ *   la RPC board_create_post lo vuelve a comprobar en la base.
+ * - No genera eventos ni publica en Hedera.
+ */
+export async function createPostAction(_prev: BoardActionState, formData: FormData): Promise<BoardActionState> {
+  const actor = await requireActor(["school_rep"]);
+  if (!actor.schoolId) return { status: "error", message: "Esta cuenta no tiene una escuela asociada." };
+
+  const { input, values } = parseBoardPostForm(formData);
+  try {
+    await createPost(actor, { ...input, schoolId: actor.schoolId });
+  } catch (error) {
+    return { status: "error", message: flowErrorMessage(error), values };
+  }
+  return postCreatedState();
 }

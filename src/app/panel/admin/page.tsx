@@ -4,6 +4,7 @@ import { DemoBadge } from "@/components/common/demo-badge";
 import { PanelNeedCard } from "@/components/panel/panel-need-card";
 import { SummaryCards } from "@/components/panel/summary-cards";
 import { requireActor } from "@/lib/auth/session";
+import { getPendingPosts } from "@/lib/data/board";
 import { getAdminNeeds, getAdminOverview } from "@/lib/data/panel";
 import { EVENT_LABEL, formatDateTime } from "@/lib/domain/labels";
 import { NEED_STATUSES } from "@/lib/domain/panel";
@@ -19,7 +20,7 @@ export default async function AdminPanelPage(props: PageProps<"/panel/admin">) {
   await requireActor(["admin"]);
   // `estado` es solo un filtro de presentación; getAdminNeeds lo valida contra el enum.
   const { estado } = await props.searchParams;
-  const [overview, result] = await Promise.all([getAdminOverview(), getAdminNeeds(estado)]);
+  const [overview, result, pendingPosts] = await Promise.all([getAdminOverview(), getAdminNeeds(estado), getPendingPosts()]);
   const filter = result.ok ? result.filter : null;
   const total = Object.values(overview.counts).reduce((a, b) => a + b, 0);
 
@@ -49,6 +50,27 @@ export default async function AdminPanelPage(props: PageProps<"/panel/admin">) {
             })),
           ]}
         />
+      </section>
+
+      <section aria-labelledby="tablon" className="flex flex-col gap-3">
+        <h2 id="tablon" className="text-lg font-semibold">
+          Tablón
+        </h2>
+        {pendingPosts.available ? (
+          <SummaryCards
+            label="Publicaciones del tablón"
+            items={[
+              {
+                label: "Publicaciones por revisar",
+                value: pendingPosts.posts.length,
+                hint: "Revisar y aprobar",
+                href: "/panel/admin/publicaciones",
+              },
+            ]}
+          />
+        ) : (
+          <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">El tablón aún no está disponible.</p>
+        )}
       </section>
 
       <section aria-labelledby="publicacion" className="flex flex-col gap-3">

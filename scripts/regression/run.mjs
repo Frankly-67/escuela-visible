@@ -18,18 +18,21 @@ const GROUPS = {
     ["pglite/column-privacy-b0.mts", TSX],
     ["pglite/column-privacy-b01.mts", TSX],
     ["pglite/panel-isolation-b1.mts", TSX],
+    ["pglite/board.mts", TSX],
   ],
   regression: [
     ["state.mts", SERVER],
     ["data-layer.mts", MOCKS],
     ["actions-needs.mts", MOCKS],
     ["actions-support.mts", MOCKS],
+    ["actions-board.mts", MOCKS],
   ],
   http: [
     ["http-public.mjs", []],
     ["http-panels.mjs", []],
     ["http-need-actions.mjs", []],
     ["http-support-actions.mjs", []],
+    ["http-board.mjs", []],
   ],
 };
 

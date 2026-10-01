@@ -1,11 +1,14 @@
 import Link from "next/link";
 
+import { formatEventDate, PostKindBadge } from "@/components/board/post-card";
 import { DemoBadge } from "@/components/common/demo-badge";
 import { ConfirmReceiptButton } from "@/components/panel/confirm-receipt-button";
 import { PanelNeedCard } from "@/components/panel/panel-need-card";
 import { SummaryCards } from "@/components/panel/summary-cards";
 import { requireActor } from "@/lib/auth/session";
+import { getSchoolPosts } from "@/lib/data/board";
 import { getSchoolPanel } from "@/lib/data/panel";
+import { BOARD_STATUS_LABEL } from "@/lib/domain/board";
 import { formatDate, formatQuantity } from "@/lib/domain/labels";
 
 // Las Server Actions de esta página (confirmReceiptAction) publican en Hedera (publishEvent): envío + receipt
@@ -16,7 +19,7 @@ export const maxDuration = 60;
 export default async function SchoolPanelPage() {
   await requireActor(["school_rep"]);
   // La escuela sale de la sesión (actor.schoolId) dentro de getSchoolPanel(); nunca de la URL.
-  const panel = await getSchoolPanel();
+  const [panel, posts] = await Promise.all([getSchoolPanel(), getSchoolPosts()]);
 
   if (!panel) {
     return (
@@ -125,6 +128,46 @@ export default async function SchoolPanelPage() {
               />
             ))}
           </div>
+        )}
+      </section>
+
+      <section aria-labelledby="tablon" className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <h2 id="tablon" className="text-2xl font-semibold tracking-tight">
+            Publicaciones en el tablón
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Escuela Visible revisa cada publicación antes de mostrarla. Después de enviarla no se puede editar.
+          </p>
+          {posts.available && (
+            <Link
+              href="/panel/escuela/publicaciones/nueva"
+              className="mt-2 self-start rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/80"
+            >
+              Nueva publicación
+            </Link>
+          )}
+        </div>
+        {!posts.available ? (
+          <p className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">El tablón aún no está disponible.</p>
+        ) : posts.posts.length === 0 ? (
+          <p className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">
+            La escuela todavía no tiene publicaciones.
+          </p>
+        ) : (
+          <ul className="grid gap-4 md:grid-cols-2">
+            {posts.posts.map((post) => (
+              <li key={post.id} className="flex flex-col gap-2 rounded-xl border bg-card p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <PostKindBadge kind={post.kind} />
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">{BOARD_STATUS_LABEL[post.status]}</span>
+                </div>
+                <p className="font-semibold">{post.title}</p>
+                {post.eventDate && <p className="text-xs text-muted-foreground">Fecha: {formatEventDate(post.eventDate)}</p>}
+                <p className="text-xs text-muted-foreground">Enviada el {formatDate(post.createdAt)}</p>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
     </div>

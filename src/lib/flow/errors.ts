@@ -8,6 +8,8 @@ export type FlowErrorCode =
   | "DUPLICATE_EVENT"
   | "ACTOR_NOT_FOUND"
   | "NOT_FOUND"
+  /** Tablón: el texto contiene un teléfono o un correo. */
+  | "CONTACT_DATA"
   | "UNKNOWN";
 
 const KNOWN_CODES = new Set<string>([
@@ -23,6 +25,7 @@ const KNOWN_CODES = new Set<string>([
   "DUPLICATE_EVENT",
   "ACTOR_NOT_FOUND",
   "NOT_FOUND",
+  "CONTACT_DATA",
 ]);
 
 /** Error de negocio con mensaje en español apto para mostrar al usuario. */
