@@ -64,6 +64,10 @@ export async function rejectNeedAction(_prev: NeedActionState, formData: FormDat
  * Revisión de publicaciones del tablón. Mismo patrón: sesión de admin en cada
  * acción; del formulario solo se toma el id; el estado se lee de la base. Sin
  * eventos ni publicación en Hedera.
+ *
+ * Sin refresh(): la lista solo muestra pendientes, así que refrescarla quitaría
+ * la publicación revisada junto con el mensaje del resultado. El resultado se
+ * muestra en su lugar hasta que el admin recargue la página.
  */
 const postIdFrom = (formData: FormData) => {
   const value = formData.get("postId");
@@ -78,7 +82,6 @@ export async function publishPostAction(_prev: BoardActionState, formData: FormD
   } catch (error) {
     return { status: "error", message: flowErrorMessage(error) };
   }
-  refresh();
   return postPublishedState();
 }
 
@@ -90,6 +93,5 @@ export async function rejectPostAction(_prev: BoardActionState, formData: FormDa
   } catch (error) {
     return { status: "error", message: flowErrorMessage(error) };
   }
-  refresh();
   return postRejectedState();
 }

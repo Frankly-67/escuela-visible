@@ -148,10 +148,10 @@ check((await redirectOf(() => createPostAction(IDLE, fd({ ...FORM, schoolId: CAS
 reset(); fakePost = { id: FAKE_POST, status: "pending_review" };
 const published = await publishPostAction(IDLE, fd({ postId: FAKE_POST, status: "rejected" }));
 check(published.status === "success" && rpcCalls[0]?.fn === "board_publish_post" && JSON.stringify(rpcCalls[0].args) === JSON.stringify({ p_actor_id: rpcCalls[0].args.p_actor_id, p_post_id: FAKE_POST }), "publishPostAction → RPC board_publish_post {p_actor_id, p_post_id}");
-check(refreshCalls === 1 && publishCalls.length === 0 && /Ya es pública/.test(published.status === "success" ? published.message : ""), "refresh() + mensaje, sin Hedera");
+check(refreshCalls === 0 && publishCalls.length === 0 && /Ya es pública/.test(published.status === "success" ? published.message : ""), "mensaje en su lugar (sin refresh, que lo haría desaparecer), sin Hedera");
 reset(); fakePost = { id: FAKE_POST, status: "pending_review" };
 const rejected = await rejectPostAction(IDLE, fd({ postId: FAKE_POST }));
-check(rejected.status === "success" && rpcCalls[0]?.fn === "board_reject_post" && refreshCalls === 1 && publishCalls.length === 0, "rejectPostAction → RPC board_reject_post + refresh(), sin Hedera");
+check(rejected.status === "success" && rpcCalls[0]?.fn === "board_reject_post" && refreshCalls === 0 && publishCalls.length === 0, "rejectPostAction → RPC board_reject_post, sin refresh, sin Hedera");
 for (const status of ["published", "rejected"]) {
   reset(); fakePost = { id: FAKE_POST, status };
   const r = await publishPostAction(IDLE, fd({ postId: FAKE_POST }));
@@ -167,7 +167,7 @@ for (const bad of ["", "x", "'; drop table board_posts; --", FAKE_POST.toUpperCa
 }
 reset(); fakePost = { id: FAKE_POST, status: "pending_review" }; rpcResult = { error: { message: "INVALID_TRANSITION: Esta publicación no está pendiente de revisión.", hint: "INVALID_TRANSITION" } };
 const race = await publishPostAction(IDLE, fd({ postId: FAKE_POST }));
-check(race.status === "error" && race.message === "Esta publicación no está pendiente de revisión." && refreshCalls === 0, "carrera (la RPC rechaza) → mensaje de negocio, sin refresh");
+check(race.status === "error" && race.message === "Esta publicación no está pendiente de revisión.", "carrera (la RPC rechaza) → mensaje de negocio");
 await session.auth.signOut({ scope: "local" });
 
 console.log(ok ? "\nTODO OK" : "\nHAY FALLOS");
